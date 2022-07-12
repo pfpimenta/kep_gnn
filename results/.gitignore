@@ -1,0 +1,4 @@
+# do not commit the saved performance reports into the repo
+./*.csv
+./*.txt
+./*.json
