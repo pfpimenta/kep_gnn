@@ -1,5 +1,5 @@
 # do not commit the saved GML format graphs into the repo
-./*.gml
+*.gml
 
 # do not commit the saved PT format graphs into the repo
-./*.pt
+*.pt
