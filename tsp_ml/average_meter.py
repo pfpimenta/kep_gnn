@@ -1,16 +1,15 @@
 class AverageMeter(object):
-    """Computes and stores the average and current value"""
-    def __init__(self):
-        self.reset()
+    """Computes and stores the average"""
 
-    def reset(self):
-        self.val = 0
-        self.avg = 0
+    def __init__(self):
         self.sum = 0
         self.count = 0
 
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
+    def update(self, val: float) -> None:
+        self.sum += val
+        self.count += 1
+
+    @property
+    def average(self) -> float:
+        avg = self.sum / self.count
+        return avg

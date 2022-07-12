@@ -6,7 +6,11 @@ import sys
 from models.tsp_ggcn import TSP_GGCN
 from tsp_dataset import TSPDataset
 from torch_geometric.loader import DataLoader
-from definitions import TRAINED_MODELS_FOLDER_PATH, TRAIN_DATASET_FOLDER_PATH, TEST_DATASET_FOLDER_PATH
+from definitions import (
+    TRAINED_MODELS_FOLDER_PATH,
+    TRAIN_DATASET_FOLDER_PATH,
+    TEST_DATASET_FOLDER_PATH,
+)
 
 
 # MODEL_FILENAME = "tsp_gcn_model.pt"
@@ -17,11 +21,14 @@ from definitions import TRAINED_MODELS_FOLDER_PATH, TRAIN_DATASET_FOLDER_PATH, T
 MODEL_FILENAME = "TSP_GGCN_2022_07_12_12h27.pt"
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using {device}")
 
-def confusion(prediction: torch.Tensor, truth: torch.Tensor) -> Tuple[int, int, int, int]:
-    """ Returns the confusion matrix for the values in the `prediction` and `truth`
+
+def confusion(
+    prediction: torch.Tensor, truth: torch.Tensor
+) -> Tuple[int, int, int, int]:
+    """Returns the confusion matrix for the values in the `prediction` and `truth`
     tensors, i.e. the amount of positions where the values of `prediction`
     and `truth` are
     - 1 and 1 (True Positive)
@@ -38,7 +45,7 @@ def confusion(prediction: torch.Tensor, truth: torch.Tensor) -> Tuple[int, int, 
     #   0     where prediction is 0 and truth is 1 (False Negative)
 
     true_positives = torch.sum(confusion_vector == 1).item()
-    false_positives = torch.sum(confusion_vector == float('inf')).item()
+    false_positives = torch.sum(confusion_vector == float("inf")).item()
     true_negatives = torch.sum(torch.isnan(confusion_vector)).item()
     false_negatives = torch.sum(confusion_vector == 0).item()
 
@@ -46,8 +53,10 @@ def confusion(prediction: torch.Tensor, truth: torch.Tensor) -> Tuple[int, int, 
 
 
 def evaluate(model: torch.nn.Module, dataset: TSPDataset):
-    dataloader = DataLoader(dataset, shuffle=True,batch_size=batch_size,pin_memory=True,num_workers=4)
-    model.eval() # set the model to evaluation mode
+    dataloader = DataLoader(
+        dataset, shuffle=True, batch_size=batch_size, pin_memory=True, num_workers=4
+    )
+    model.eval()  # set the model to evaluation mode
     total_corrects = 0
     total_non_route_edges_truth = 0
     total_route_edges_pred = 0
@@ -56,7 +65,7 @@ def evaluate(model: torch.nn.Module, dataset: TSPDataset):
     total_edges = 0
     accuracy_list = []
     TP, FP, TN, FN = 0, 0, 0, 0
-    for i, batch in enumerate(tqdm(dataloader, desc="Evaluation",file=sys.stdout)):
+    for i, batch in enumerate(tqdm(dataloader, desc="Evaluation", file=sys.stdout)):
         batch = batch.to(device)
         label = batch.y
         label = label.to(torch.float32)
@@ -85,23 +94,23 @@ def evaluate(model: torch.nn.Module, dataset: TSPDataset):
             # import pdb
             # pdb.set_trace()
 
-
     print(f"TP, FP: {TP, FP}")
     print(f"TN, FN: {TN, FN}")
     precision = TP / (TP + FP)
     print(f"precision: {precision}")
-    recall = TP /(TP + FN)
+    recall = TP / (TP + FN)
     print(f"recall: {recall}")
-    print(f'total_route_edges_truth: {total_route_edges_truth}')
-    print(f'total_route_edges_pred: {total_route_edges_pred}')
-    print(f'total_corrects: {total_corrects}')
+    print(f"total_route_edges_truth: {total_route_edges_truth}")
+    print(f"total_route_edges_pred: {total_route_edges_pred}")
+    print(f"total_corrects: {total_corrects}")
     dataset_size = len(dataloader.dataset)
-    print(f'dataset_size: {dataset_size}')
-    print(f'total_edges: {total_edges}')
+    print(f"dataset_size: {dataset_size}")
+    print(f"total_edges: {total_edges}")
     avg_num_edges = int(total_edges) / int(dataset_size)
-    print(f'avg_num_edges: {avg_num_edges}')
+    print(f"avg_num_edges: {avg_num_edges}")
     accuracy = total_corrects / int(total_edges)
-    print(f'Accuracy: {accuracy:.4f}')
+    print(f"Accuracy: {accuracy:.4f}")
+
 
 # load model
 model = TSP_GGCN().to(device)

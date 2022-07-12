@@ -18,3 +18,6 @@ pip install python-tsp
 
 # Jupyter
 pip install -U ipykernel
+
+# pre-commit (for development only)
+pip install pre-commit

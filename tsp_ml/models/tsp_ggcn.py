@@ -1,7 +1,7 @@
-
 import torch
 import torch.nn.functional as F
 from torch_geometric.nn import GatedGraphConv, Linear
+
 
 class TSP_GGCN(torch.nn.Module):
     def __init__(self):
@@ -11,8 +11,12 @@ class TSP_GGCN(torch.nn.Module):
         node_hidden_layer_2_size = 100
         self.conv_1 = GatedGraphConv(50, num_layers=2)
         self.conv_2 = GatedGraphConv(100, num_layers=3)
-        self.fully_connected_nodes = Linear(in_channels=node_hidden_layer_1_size, out_channels=node_hidden_layer_2_size)
-        self.fully_connected_edges = Linear(node_hidden_layer_2_size*2, out_channels=output_size)
+        self.fully_connected_nodes = Linear(
+            in_channels=node_hidden_layer_1_size, out_channels=node_hidden_layer_2_size
+        )
+        self.fully_connected_edges = Linear(
+            node_hidden_layer_2_size * 2, out_channels=output_size
+        )
 
     def forward(self, data):
         node_positions = data.features
