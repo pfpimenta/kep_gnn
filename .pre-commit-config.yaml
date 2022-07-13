@@ -2,6 +2,7 @@ repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.3.0
     hooks:
+    -   id: check-json                          # Attempts to load all json files to verify syntax
     -   id: check-yaml                          # Checks yaml files for parseable syntax
     -   id: check-added-large-files             # Prevent giant files from being committed
     -   id: check-merge-conflict                # Check for files that contain merge conflict strings
@@ -11,6 +12,8 @@ repos:
     -   id: fix-encoding-pragma                 # Add # -*- coding: utf-8 -*- to the top of python files
     -   id: mixed-line-ending                   # Replaces or checks mixed line ending
     -   id: trailing-whitespace                 # Trims trailing whitespace
+    -   id: pretty-format-json                  # Checks that all your JSON files are "pretty" (keys sorted and indented)
+    -   id: requirements-txt-fixer              # Sorts entries in requirements.txt
 -   repo: https://github.com/psf/black
     rev: 22.6.0
     hooks:
@@ -20,3 +23,12 @@ repos:
     hooks:
     -   id: isort                               # Sort and organize Python imports
         args: [ -m=3 , -tc , -l 100 ]
+
+-   repo: local
+    hooks:
+      - id: jupyter-nb-clear-output
+        name: jupyter-nb-clear-output
+        files: \.ipynb$
+        stages: [commit]
+        language: system
+        entry: python -m nbconvert --ClearOutputPreprocessor.enabled=True --inplace
