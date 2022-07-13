@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import random
 from math import sqrt
@@ -5,9 +6,9 @@ from typing import List, Optional, Tuple
 
 import networkx as nx
 import torch
+from definitions import NX_GRAPHS_FOLDER_PATH, PYG_GRAPHS_FOLDER_PATH
 from python_tsp.exact import solve_tsp_dynamic_programming
 from torch_geometric.utils.convert import from_networkx
-from definitions import NX_GRAPHS_FOLDER_PATH, PYG_GRAPHS_FOLDER_PATH
 
 
 def solve_tsp_instance(tsp_instance_graph: nx.Graph) -> Tuple[List[int], float]:

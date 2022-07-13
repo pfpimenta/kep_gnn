@@ -1,17 +1,17 @@
-from typing import Tuple
-import torch
-from tqdm import tqdm
-
+# -*- coding: utf-8 -*-
 import sys
-from models.tsp_ggcn import TSP_GGCN
-from tsp_dataset import TSPDataset
-from torch_geometric.loader import DataLoader
-from definitions import (
-    TRAINED_MODELS_FOLDER_PATH,
-    TRAIN_DATASET_FOLDER_PATH,
-    TEST_DATASET_FOLDER_PATH,
-)
+from typing import Tuple
 
+import torch
+from definitions import (
+    TEST_DATASET_FOLDER_PATH,
+    TRAIN_DATASET_FOLDER_PATH,
+    TRAINED_MODELS_FOLDER_PATH,
+)
+from models.tsp_ggcn import TSP_GGCN
+from torch_geometric.loader import DataLoader
+from tqdm import tqdm
+from tsp_dataset import TSPDataset
 
 # MODEL_FILENAME = "tsp_gcn_model.pt"
 # MODEL_FILENAME = "TSP_GGCN_2022_07_05_16h31.pt"

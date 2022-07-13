@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
 from os import listdir
 from typing import List
+
 import torch
-from torch_geometric.data import Dataset, Data
+from torch_geometric.data import Data, Dataset
+
 
 class TSPDataset(Dataset):
     def __init__(self, dataset_folderpath: str, transform=None, pre_transform=None):
@@ -10,10 +13,10 @@ class TSPDataset(Dataset):
 
     @property
     def num_classes(self) -> int:
-        ''' The TSP problem is modelled here as an edge binary
+        """The TSP problem is modelled here as an edge binary
         classification problem: an edge may either be or
         not be in the solution route
-        '''
+        """
         return 2
 
     @property

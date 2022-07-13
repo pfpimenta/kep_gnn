@@ -1,17 +1,19 @@
-from operator import mod
-from statistics import mode
-import torch
-from torch_geometric.data.batch import Batch
-from torch_geometric.loader import DataLoader
-from tqdm import tqdm
-from typing import Tuple
+# -*- coding: utf-8 -*-
 import sys
 import time
 from datetime import datetime
-from models.tsp_ggcn import TSP_GGCN
+from operator import mod
+from statistics import mode
+from typing import Tuple
+
+import torch
 from average_meter import AverageMeter
+from definitions import TRAIN_DATASET_FOLDER_PATH, TRAINED_MODELS_FOLDER_PATH
+from models.tsp_ggcn import TSP_GGCN
+from torch_geometric.data.batch import Batch
+from torch_geometric.loader import DataLoader
+from tqdm import tqdm
 from tsp_dataset import TSPDataset
-from definitions import TRAINED_MODELS_FOLDER_PATH, TRAIN_DATASET_FOLDER_PATH
 
 # from training_report import TrainingReport
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import torch
 
 is_cuda_available = torch.cuda.is_available()

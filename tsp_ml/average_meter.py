@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 class AverageMeter(object):
     """Computes and stores the average"""
 
