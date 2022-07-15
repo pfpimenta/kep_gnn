@@ -23,10 +23,9 @@ repos:
     hooks:
     -   id: isort                               # Sort and organize Python imports
         args: [ -m=3 , -tc , -l 100 ]
-
 -   repo: local
     hooks:
-      - id: jupyter-nb-clear-output
+      - id: jupyter-nb-clear-output             # Avoids commiting Jupyter Notebook outputs to repository
         name: jupyter-nb-clear-output
         files: \.ipynb$
         stages: [commit]
