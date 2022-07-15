@@ -6,9 +6,9 @@ class AverageMeter(object):
         self.sum = 0
         self.count = 0
 
-    def update(self, val: float) -> None:
+    def update(self, val: float, n: int = 1) -> None:
         self.sum += val
-        self.count += 1
+        self.count += n
 
     @property
     def average(self) -> float:

@@ -9,7 +9,9 @@ from typing import Tuple
 import torch
 from average_meter import AverageMeter
 from definitions import TRAIN_DATASET_FOLDER_PATH, TRAINED_MODELS_FOLDER_PATH
+from model_utils import save_model
 from models.tsp_ggcn import TSP_GGCN
+from models.tsp_ggcn_v2 import TSP_GGCN_v2
 from torch_geometric.data.batch import Batch
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
@@ -19,7 +21,7 @@ from tsp_dataset import TSPDataset
 
 
 BATCH_SIZE = 10
-NUM_EPOCHS = 3  # 100
+NUM_EPOCHS = 2
 LEARNING_RATE = 0.005
 
 
@@ -30,23 +32,6 @@ def set_torch_seed(seed: int = 1234):
         torch.cuda.manual_seed_all(seed=seed)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
-
-
-def save_model(model: torch.nn.Module):
-    # save model state in the trained models folder
-    model_name = get_model_name(model)
-    model_filepath = TRAINED_MODELS_FOLDER_PATH / (model_name + ".pt")
-    torch.save(model.state_dict(), model_filepath)
-    print(f"Saved {model_filepath}")
-
-
-def get_model_name(model: torch.nn.Module) -> str:
-    # generates a model name based on the name of the architecture and
-    # the current date and time
-    model_architecture_name = model.__class__.__name__
-    training_timestamp = datetime.now().strftime("%Y_%m_%d_%Hh%M")
-    model_name = f"{model_architecture_name}_{training_timestamp}"
-    return model_name
 
 
 def get_class_weights(dataloader: DataLoader) -> Tuple[float, float]:
@@ -162,7 +147,7 @@ def train(
         trainLoss = training_epoch(
             model=model,
             device=device,
-            dataloader=train_dataloader,
+            dataloader=dataloader,
             optimizer=optimizer,
             loss_function=loss_function,
         )
@@ -184,24 +169,25 @@ if __name__ == "__main__":
 
     # setup data
     tsp_dataset = TSPDataset(dataset_folderpath=TRAIN_DATASET_FOLDER_PATH)
-    train_dataloader = DataLoader(
+    dataloader = DataLoader(
         tsp_dataset, shuffle=True, batch_size=BATCH_SIZE, pin_memory=True, num_workers=4
     )
 
     # initalize model and optimizer
-    model = TSP_GGCN().to(device)
+    # model = TSP_GGCN().   to(device)
+    model = TSP_GGCN_v2().to(device)
     adam_optimizer = torch.optim.Adam(
         model.parameters(), lr=LEARNING_RATE, weight_decay=5e-4
     )
-    class_weights = get_class_weights(dataloader=train_dataloader)
+    class_weights = get_class_weights(dataloader=dataloader)
     loss_function = torch.nn.CrossEntropyLoss(weight=torch.tensor(class_weights))
 
-    ## train
+    # train
     model = train(
         num_epochs=NUM_EPOCHS,
         model=model,
         device=device,
-        dataloader=train_dataloader,
+        dataloader=dataloader,
         optimizer=adam_optimizer,
         loss_function=loss_function,
     )
