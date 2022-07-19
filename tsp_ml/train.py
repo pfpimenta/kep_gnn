@@ -200,17 +200,17 @@ if __name__ == "__main__":
 
     # setup data
     # TODO refactor
-    tsp_train_dataset = TSPDataset(dataset_folderpath=TSP_TRAIN_DATASET_FOLDER_PATH)
-    tsp_val_dataset = TSPDataset(dataset_folderpath=TSP_TRAIN_DATASET_FOLDER_PATH)
+    train_dataset = TSPDataset(dataset_folderpath=DTSP_TRAIN_DATASET_FOLDER_PATH)
+    val_dataset = TSPDataset(dataset_folderpath=DTSP_TRAIN_DATASET_FOLDER_PATH)
     train_dataloader = DataLoader(
-        tsp_train_dataset,
+        train_dataset,
         shuffle=True,
         batch_size=BATCH_SIZE,
         pin_memory=True,
         num_workers=4,
     )
     val_dataloader = DataLoader(
-        tsp_val_dataset,
+        val_dataset,
         shuffle=False,
         batch_size=BATCH_SIZE,
         pin_memory=True,
@@ -218,9 +218,9 @@ if __name__ == "__main__":
     )
 
     # initalize model and optimizer
-    model = TSP_GGCN().to(device)
+    # model = TSP_GGCN().to(device)
     # model = TSP_GGCN_v2().to(device)
-    # model = DTSP_GNN_Prates().to(device)
+    model = DTSP_GNN_Prates().to(device)
     adam_optimizer = torch.optim.Adam(
         model.parameters(), lr=LEARNING_RATE, weight_decay=5e-4
     )

@@ -39,15 +39,15 @@ def generate_tsp_instance(
     # add nodes
     for node in nodes:
         # node features are its 2D coordinates (x1,x2)
-        g.add_node(node, features=(x1_values[node], x2_values[node]))
+        g.add_node(node, node_features=(x1_values[node], x2_values[node]))
     # add edges
     for src_node_id in nodes:
         for dst_node_id in nodes:
             if src_node_id != dst_node_id:
-                x1_node1 = g.nodes[src_node_id]["features"][0]
-                x2_node1 = g.nodes[src_node_id]["features"][1]
-                x1_node2 = g.nodes[dst_node_id]["features"][0]
-                x2_node2 = g.nodes[dst_node_id]["features"][1]
+                x1_node1 = g.nodes[src_node_id]["node_features"][0]
+                x2_node1 = g.nodes[src_node_id]["node_features"][1]
+                x1_node2 = g.nodes[dst_node_id]["node_features"][0]
+                x2_node2 = g.nodes[dst_node_id]["node_features"][1]
                 euclidian_distance = sqrt(
                     (x1_node1 - x1_node2) ** 2 + (x2_node1 - x2_node2) ** 2
                 )

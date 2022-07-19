@@ -34,6 +34,15 @@ def tsp_to_dtsp(
     # and 'cost' (value that is {cost_deviation} higher or lower than {optimal_cost})
     y_dtsp_graph.cost = tsp_graph.optimal_cost * (1 - cost_deviation)
     n_dtsp_graph.cost = tsp_graph.optimal_cost * (1 + cost_deviation)
+    # add cost as an edge feature
+    y_costs = torch.ones(tsp_graph.num_edges) * y_dtsp_graph.cost
+    n_costs = torch.ones(tsp_graph.num_edges) * n_dtsp_graph.cost
+    y_dtsp_graph.edge_features = torch.cat(
+        (tsp_graph.distance.view(-1, 1), y_costs.view(-1, 1)), 1
+    )
+    n_dtsp_graph.edge_features = torch.cat(
+        (tsp_graph.distance.view(-1, 1), n_costs.view(-1, 1)), 1
+    )
     # rename optimal_route tensor
     y_dtsp_graph.optimal_route = y_dtsp_graph.y
     n_dtsp_graph.optimal_route = n_dtsp_graph.y
@@ -72,11 +81,21 @@ def generate_dtsp_dataset(
 
 
 if __name__ == "__main__":
-    tsp_instances_dir = TSP_TEST_DATASET_FOLDER_PATH
-    dtsp_instances_dir = DTSP_TEST_DATASET_FOLDER_PATH
     cost_deviation = 0.02
     generate_dtsp_dataset(
-        tsp_instances_dir=tsp_instances_dir,
-        output_dir=dtsp_instances_dir,
+        tsp_instances_dir=TSP_TRAIN_DATASET_FOLDER_PATH,
+        output_dir=DTSP_TRAIN_DATASET_FOLDER_PATH,
+        cost_deviation=cost_deviation,
+    )
+
+    generate_dtsp_dataset(
+        tsp_instances_dir=TSP_TEST_DATASET_FOLDER_PATH,
+        output_dir=DTSP_TEST_DATASET_FOLDER_PATH,
+        cost_deviation=cost_deviation,
+    )
+
+    generate_dtsp_dataset(
+        tsp_instances_dir=TSP_VAL_DATASET_FOLDER_PATH,
+        output_dir=DTSP_VAL_DATASET_FOLDER_PATH,
         cost_deviation=cost_deviation,
     )

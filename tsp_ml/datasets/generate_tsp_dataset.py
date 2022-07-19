@@ -43,5 +43,12 @@ def generate_tsp_dataset(num_samples: int, output_dir: str):
 
 if __name__ == "__main__":
     num_samples = 1000  # usaram 2**20 no paper
-    output_dir = TSP_VAL_DATASET_FOLDER_PATH
-    generate_tsp_dataset(num_samples=num_samples, output_dir=output_dir)
+    generate_tsp_dataset(
+        num_samples=num_samples, output_dir=TSP_TEST_DATASET_FOLDER_PATH
+    )
+    generate_tsp_dataset(
+        num_samples=num_samples, output_dir=TSP_TRAIN_DATASET_FOLDER_PATH
+    )
+    generate_tsp_dataset(
+        num_samples=num_samples, output_dir=TSP_VAL_DATASET_FOLDER_PATH
+    )

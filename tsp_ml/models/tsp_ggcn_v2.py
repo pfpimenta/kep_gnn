@@ -23,7 +23,7 @@ class TSP_GGCN_v2(torch.nn.Module):
         )
 
     def forward(self, data):
-        node_positions = data.features
+        node_positions = data.node_features
         edge_index = data.edge_index
         edge_weights = data.distance
 
