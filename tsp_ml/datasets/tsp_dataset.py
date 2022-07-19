@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from os import listdir
+from pathlib import Path
 from typing import List
 
 import torch
@@ -25,7 +26,7 @@ class TSPDataset(Dataset):
         if self.__num_edges is None:
             self.__num_edges = 0
             for i in range(self.len()):
-                filepath = self.dataset_folderpath / self.processed_file_names[i]
+                filepath = Path(self.dataset_folderpath) / self.processed_file_names[i]
                 data = torch.load(filepath)
                 self.__num_edges += data.num_edges
         return self.__num_edges
@@ -39,6 +40,6 @@ class TSPDataset(Dataset):
         return len(self.processed_file_names)
 
     def get(self, idx: int) -> Data:
-        filepath = self.dataset_folderpath / self.processed_file_names[idx]
+        filepath = Path(self.dataset_folderpath) / self.processed_file_names[idx]
         data = torch.load(filepath)
         return data

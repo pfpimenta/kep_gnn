@@ -7,12 +7,15 @@ import networkx as nx
 from python_tsp.exact import solve_tsp_dynamic_programming
 
 
-def solve_tsp_instance(tsp_instance_graph: nx.Graph) -> Tuple[List[int], float]:
+def solve_tsp_instance(
+    tsp_instance_graph: nx.Graph, verbose: bool = False
+) -> Tuple[List[int], float]:
     distance_matrix = nx.floyd_warshall_numpy(G=tsp_instance_graph, weight="distance")
     path_nodes, path_distance = solve_tsp_dynamic_programming(distance_matrix)
-    print(
-        f"Solved TSP instance. Path nodes: {path_nodes} ...\npath distance: {path_distance}"
-    )
+    if verbose:
+        print(
+            f"Solved TSP instance. Path nodes: {path_nodes} ...\npath distance: {path_distance}"
+        )
     path_edges = [
         [path_nodes[i], path_nodes[i + 1]] for i in range(len(path_nodes) - 1)
     ]
@@ -21,11 +24,14 @@ def solve_tsp_instance(tsp_instance_graph: nx.Graph) -> Tuple[List[int], float]:
     return path_edges, path_distance
 
 
-def generate_tsp_instance(num_nodes: Optional[int] = None) -> nx.Graph:
+def generate_tsp_instance(
+    num_nodes: Optional[int] = None, verbose: bool = False
+) -> nx.Graph:
     if num_nodes is None:
         # num_nodes = int(random.uniform(20, 40)) # uniform distribution
         num_nodes = int(random.uniform(5, 16))  # DEBUG
-    print(f"Generating a TSP instance graph with {num_nodes} nodes ...")
+    if verbose:
+        print(f"Generating a TSP instance graph with {num_nodes} nodes ...")
     nodes = range(num_nodes)
     x1_values = [random.uniform(0, sqrt(2) / 2) for n in nodes]
     x2_values = [random.uniform(0, sqrt(2) / 2) for n in nodes]

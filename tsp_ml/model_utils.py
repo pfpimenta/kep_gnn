@@ -2,8 +2,8 @@
 from datetime import datetime
 
 import torch
-from definitions import TRAINED_MODELS_FOLDER_PATH
-from models.tsp_ggcn_v2 import TSP_GGCN_v2 as TSP_GGCN
+from models.tsp_ggcn import TSP_GGCN
+from paths import TRAINED_MODELS_FOLDER_PATH
 
 
 def save_model(model: torch.nn.Module):

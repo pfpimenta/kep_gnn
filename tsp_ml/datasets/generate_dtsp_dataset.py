@@ -9,6 +9,17 @@ from typing import Tuple
 import torch
 import torch_geometric
 
+# to allow imports from outside the tsp_ml/datasets/ package
+sys.path.insert(0, "/home/pimenta/tsp_ml/tsp_ml")
+from paths import (
+    DTSP_TEST_DATASET_FOLDER_PATH,
+    DTSP_TRAIN_DATASET_FOLDER_PATH,
+    DTSP_VAL_DATASET_FOLDER_PATH,
+    TSP_TEST_DATASET_FOLDER_PATH,
+    TSP_TRAIN_DATASET_FOLDER_PATH,
+    TSP_VAL_DATASET_FOLDER_PATH,
+)
+
 
 def tsp_to_dtsp(
     tsp_graph: torch_geometric.data.Data, cost_deviation: float = 0.02
@@ -47,10 +58,12 @@ def generate_dtsp_dataset(
         # load TSP instance
         filepath = Path(tsp_instances_dir) / tsp_instance_filename
         tsp_graph = torch.load(filepath)
+        # generate a pair of DTSP instances
         dtsp_graph_pair: Tuple = tsp_to_dtsp(
             tsp_graph=tsp_graph, cost_deviation=cost_deviation
         )
         for j, dtsp_graph in enumerate(dtsp_graph_pair):
+            # save DTSP instance in a .PT file
             instance_index = 2 * i + j
             dtsp_graph_filename = f"d{tsp_instance_filename[:-3]}_{dtsp_graph.y}.pt"
             dtsp_graph_filepath = Path(output_dir) / dtsp_graph_filename
@@ -59,8 +72,8 @@ def generate_dtsp_dataset(
 
 
 if __name__ == "__main__":
-    tsp_instances_dir = "/home/pimenta/tsp_ml/data/tsp_dataset/train/"
-    dtsp_instances_dir = "/home/pimenta/tsp_ml/data/dtsp_dataset/train/"
+    tsp_instances_dir = TSP_TEST_DATASET_FOLDER_PATH
+    dtsp_instances_dir = DTSP_TEST_DATASET_FOLDER_PATH
     cost_deviation = 0.02
     generate_dtsp_dataset(
         tsp_instances_dir=tsp_instances_dir,

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Tuple
 
 import torch
-from definitions import MODEL_PERFORMANCE_FOLDER_PATH
+from paths import MODEL_PERFORMANCE_FOLDER_PATH
 
 
 def confusion_matrix(
@@ -71,7 +71,15 @@ class ModelPerformance:
 
     @property
     def report_dict(self) -> Dict[str, Any]:
-        report_dict = {"TP": self.TP, "TN": self.TN, "FP": self.FP, "FN": self.FN}
+        report_dict = {
+            "TP": self.TP,
+            "TN": self.TN,
+            "FP": self.FP,
+            "FN": self.FN,
+            "accuracy": self.accuracy,
+            "precision": self.precision,
+            "recall": self.recall,
+        }
         return report_dict
 
     def save(self, output_filename: str) -> None:
@@ -86,6 +94,7 @@ class ModelPerformance:
             data = json.load(json_file)
             print(data)
             # TODO
+            # return cls(TP= , )
 
     def print(self):
         # Prints the report information in a "friendly and pretty" way
