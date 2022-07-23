@@ -10,8 +10,7 @@ from tqdm import tqdm
 
 from model_performance import ModelPerformance
 
-MODEL_NAME = "TSP_GGCN_2022_07_18_22h43"
-
+TRAINED_MODEL_NAME = "TSP_GGCN_v4_weights_2022_07_22_19h44"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using {device}")
@@ -27,7 +26,7 @@ def evaluate(model: torch.nn.Module, dataset: TSPDataset) -> ModelPerformance:
         batch = batch.to(device)
         label = batch.y
         label = label.to(torch.float32)
-        scores = model(batch)
+        scores = model(data=batch)
         pred = torch.argmax(scores, 1).to(int)
         model_performance.update(pred=pred, truth=batch.y)
         if i == 30:
@@ -54,11 +53,11 @@ if __name__ == "__main__":
     train_dataset = TSPDataset(dataset_folderpath=TSP_TRAIN_DATASET_FOLDER_PATH)
     test_dataset = TSPDataset(dataset_folderpath=TSP_TEST_DATASET_FOLDER_PATH)
 
-    model_name = MODEL_NAME
-    model = load_model(model_name=model_name)
+    trained_model_name = TRAINED_MODEL_NAME
+    model = load_model(trained_model_name=trained_model_name)
     print("\n\nEvaluating the model on the train dataset")
     train_model_performance = evaluate(model=model, dataset=train_dataset)
-    train_model_performance.save(output_filename="train_" + model_name)
+    train_model_performance.save(output_filename="train_" + trained_model_name)
     print("\n\nEvaluating the model on the test dataset")
     test_model_performance = evaluate(model=model, dataset=test_dataset)
-    test_model_performance.save(output_filename="test_" + model_name)
+    test_model_performance.save(output_filename="test_" + trained_model_name)

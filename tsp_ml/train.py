@@ -1,27 +1,12 @@
 # -*- coding: utf-8 -*-
 import sys
 import time
-from datetime import datetime
-from operator import mod
-from statistics import mode
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 from average_meter import AverageMeter
-from datasets.tsp_dataset import TSPDataset
-from model_utils import save_model
-from models.dtsp_gnn_prates import DTSP_GNN_Prates
-from models.tsp_ggcn import TSP_GGCN
-from models.tsp_ggcn_v2 import TSP_GGCN_v2
-from paths import (
-    DTSP_TEST_DATASET_FOLDER_PATH,
-    DTSP_TRAIN_DATASET_FOLDER_PATH,
-    DTSP_VAL_DATASET_FOLDER_PATH,
-    TRAINED_MODELS_FOLDER_PATH,
-    TSP_TEST_DATASET_FOLDER_PATH,
-    TSP_TRAIN_DATASET_FOLDER_PATH,
-    TSP_VAL_DATASET_FOLDER_PATH,
-)
+from dataset_utils import get_class_weights, get_dataloaders
+from model_utils import get_model, save_model
 from torch_geometric.data.batch import Batch
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
@@ -41,25 +26,6 @@ def set_torch_seed(seed: int = 1234):
         torch.cuda.manual_seed_all(seed=seed)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
-
-
-def get_class_weights(dataloader: DataLoader) -> Tuple[float, float]:
-    """calculates class weights to adjust the loss function
-    based on the class distribution of the given dataset
-    """
-    class_0_count = 0
-    class_1_count = 0
-    for batch in dataloader:
-        batch_class_0_count = (batch.y == 0).sum()
-        class_0_count += batch_class_0_count
-        class_1_count += batch.num_edges - batch_class_0_count
-    total_num_edges = class_0_count + class_1_count
-    class_0_weight = 1 / (class_0_count / total_num_edges)
-    class_1_weight = 1 / (class_1_count / total_num_edges)
-    # normalize weights
-    class_0_weight = class_0_weight / (class_0_weight + class_1_weight)
-    class_1_weight = class_1_weight / (class_0_weight + class_1_weight)
-    return class_0_weight, class_1_weight
 
 
 def validation_step(
@@ -114,9 +80,6 @@ def training_step(
     batch = batch.to(device)
     edge_scores = model(batch)
     label = batch.y
-    # import pdb
-
-    # pdb.set_trace()
     # calculate loss
     loss = loss_function(edge_scores, label)
     # backpropagate
@@ -150,7 +113,7 @@ def training_epoch(
     return epoch_loss.average
 
 
-def train(
+def train_model(
     num_epochs: int,
     model: torch.nn.Module,
     device: torch.device,
@@ -191,44 +154,26 @@ def train(
     return model
 
 
-if __name__ == "__main__":
-    # select either CPU or GPU
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using {device}")
-
+def train(
+    device: torch.device, model_name: str = "TSP_GGCN", dataset_name: str = "TSP"
+):
     set_torch_seed()
 
-    # setup data
-    # TODO refactor
-    train_dataset = TSPDataset(dataset_folderpath=DTSP_TRAIN_DATASET_FOLDER_PATH)
-    val_dataset = TSPDataset(dataset_folderpath=DTSP_TRAIN_DATASET_FOLDER_PATH)
-    train_dataloader = DataLoader(
-        train_dataset,
-        shuffle=True,
-        batch_size=BATCH_SIZE,
-        pin_memory=True,
-        num_workers=4,
-    )
-    val_dataloader = DataLoader(
-        val_dataset,
-        shuffle=False,
-        batch_size=BATCH_SIZE,
-        pin_memory=True,
-        num_workers=4,
+    # initialize dataloaders
+    train_dataloader, val_dataloader = get_dataloaders(
+        dataset_name=dataset_name, batch_size=BATCH_SIZE
     )
 
-    # initalize model and optimizer
-    # model = TSP_GGCN().to(device)
-    # model = TSP_GGCN_v2().to(device)
-    model = DTSP_GNN_Prates().to(device)
+    # initialize model, optimizer, and loss function
+    model = get_model(model_name=model_name)
     adam_optimizer = torch.optim.Adam(
         model.parameters(), lr=LEARNING_RATE, weight_decay=5e-4
     )
     class_weights = get_class_weights(dataloader=train_dataloader)
     loss_function = torch.nn.CrossEntropyLoss(weight=torch.tensor(class_weights))
 
-    # train
-    model = train(
+    # train model
+    model = train_model(
         num_epochs=NUM_EPOCHS,
         model=model,
         device=device,
@@ -240,3 +185,11 @@ if __name__ == "__main__":
 
     # save model
     save_model(model=model)
+
+
+if __name__ == "__main__":
+    # select either CPU or GPU
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using {device}")
+
+    train(device=device, model_name="TSP_GGCN_v4_weights", dataset_name="TSP")

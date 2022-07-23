@@ -12,6 +12,7 @@ from torch_geometric.utils.convert import from_networkx
 # to allow imports from outside the tsp_ml/datasets/ package
 sys.path.insert(0, "/home/pimenta/tsp_ml/tsp_ml")
 
+from dataset_utils import filter_tensors
 from paths import (
     TSP_TEST_DATASET_FOLDER_PATH,
     TSP_TRAIN_DATASET_FOLDER_PATH,
@@ -34,6 +35,17 @@ def generate_tsp_dataset(num_samples: int, output_dir: str):
         nx.set_edge_attributes(G=tsp_instance_nx_graph, values=solution_dict, name="y")
         # convert from nx.Graph to torch_geometric.data.Data
         tsp_instance_pyg_graph = from_networkx(tsp_instance_nx_graph)
+        # delete tensors that are not used for the TSP
+        tensors_names = [
+            "edge_index",
+            "node_features",
+            "edge_features",
+            "y",
+            "distance",
+        ]
+        tsp_instance_pyg_graph = filter_tensors(
+            data=tsp_instance_pyg_graph, tensor_names=tensors_names
+        )
         # save TSP instance on output_dir
         filename = f"tsp_instance_{i}.pt"
         filepath = output_dir / filename

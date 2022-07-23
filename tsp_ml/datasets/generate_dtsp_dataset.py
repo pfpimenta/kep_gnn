@@ -11,6 +11,7 @@ import torch_geometric
 
 # to allow imports from outside the tsp_ml/datasets/ package
 sys.path.insert(0, "/home/pimenta/tsp_ml/tsp_ml")
+from dataset_utils import filter_tensors
 from paths import (
     DTSP_TEST_DATASET_FOLDER_PATH,
     DTSP_TRAIN_DATASET_FOLDER_PATH,
@@ -49,6 +50,10 @@ def tsp_to_dtsp(
     # set ground truth values (i.e. values to be predicted)
     y_dtsp_graph.y = 1
     n_dtsp_graph.y = 0
+    # delete tensors that are not used for the DTSP
+    tensors_names = ["edge_index", "node_features", "edge_features", "y"]
+    y_dtsp_graph = filter_tensors(data=y_dtsp_graph, tensor_names=tensors_names)
+    n_dtsp_graph = filter_tensors(data=n_dtsp_graph, tensor_names=tensors_names)
     return y_dtsp_graph, n_dtsp_graph
 
 
