@@ -51,8 +51,8 @@ def tsp_to_dtsp(
     y_dtsp_graph.y = 1
     n_dtsp_graph.y = 0
     # set instance ID
-    y_dtsp_graph.id = f"{y_dtsp_graph.id}_y"
-    n_dtsp_graph.id = f"{n_dtsp_graph.id}_n"
+    y_dtsp_graph.id = f"{y_dtsp_graph.id}_y_{cost_deviation}"
+    n_dtsp_graph.id = f"{n_dtsp_graph.id}_n_{cost_deviation}"
     # delete tensors that are not used for the DTSP
     tensors_names = ["id", "edge_index", "node_features", "edge_features", "y"]
     y_dtsp_graph = filter_tensors(data=y_dtsp_graph, tensor_names=tensors_names)

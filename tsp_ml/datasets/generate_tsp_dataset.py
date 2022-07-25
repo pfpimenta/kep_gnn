@@ -36,8 +36,10 @@ def generate_tsp_dataset(num_samples: int, output_dir: str):
         # convert from nx.Graph to torch_geometric.data.Data
         tsp_instance_pyg_graph = from_networkx(tsp_instance_nx_graph)
         # set instance ID
-        graph_hash = hash(tsp_instance_pyg_graph)
-        tsp_instance_pyg_graph.id = f"{i}_{graph_hash}"
+        instance_id = nx.weisfeiler_lehman_graph_hash(
+            G=tsp_instance_nx_graph, edge_attr="distance"
+        )
+        tsp_instance_pyg_graph.id = instance_id
         # delete tensors that are not used for the TSP
         tensors_names = [
             "id",
@@ -51,7 +53,7 @@ def generate_tsp_dataset(num_samples: int, output_dir: str):
             data=tsp_instance_pyg_graph, tensor_names=tensors_names
         )
         # save TSP instance on output_dir
-        filename = f"tsp_instance_{i}.pt"
+        filename = f"tsp_instance_{instance_id}.pt"
         filepath = output_dir / filename
         torch.save(tsp_instance_pyg_graph, filepath)
         print(f"[{i+1}/{num_samples}] Saved {filepath}")
