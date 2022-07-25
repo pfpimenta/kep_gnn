@@ -35,8 +35,12 @@ def generate_tsp_dataset(num_samples: int, output_dir: str):
         nx.set_edge_attributes(G=tsp_instance_nx_graph, values=solution_dict, name="y")
         # convert from nx.Graph to torch_geometric.data.Data
         tsp_instance_pyg_graph = from_networkx(tsp_instance_nx_graph)
+        # set instance ID
+        graph_hash = hash(tsp_instance_pyg_graph)
+        tsp_instance_pyg_graph.id = f"{i}_{graph_hash}"
         # delete tensors that are not used for the TSP
         tensors_names = [
+            "id",
             "edge_index",
             "node_features",
             "edge_features",

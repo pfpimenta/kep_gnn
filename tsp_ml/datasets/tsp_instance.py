@@ -6,6 +6,9 @@ from typing import List, Optional, Tuple
 import networkx as nx
 from python_tsp.exact import solve_tsp_dynamic_programming
 
+# random seed to make the same dataset everytime
+random.seed(42)
+
 
 def solve_tsp_instance(
     tsp_instance_graph: nx.Graph, verbose: bool = False
@@ -33,8 +36,8 @@ def generate_tsp_instance(
     if verbose:
         print(f"Generating a TSP instance graph with {num_nodes} nodes ...")
     nodes = range(num_nodes)
-    x1_values = [random.uniform(0, sqrt(2) / 2) for n in nodes]
-    x2_values = [random.uniform(0, sqrt(2) / 2) for n in nodes]
+    x1_values = [random.uniform(0, sqrt(2) / 2) for _ in nodes]
+    x2_values = [random.uniform(0, sqrt(2) / 2) for _ in nodes]
     g = nx.Graph()
     # add nodes
     for node in nodes:

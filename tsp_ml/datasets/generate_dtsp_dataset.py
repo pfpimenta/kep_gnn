@@ -50,8 +50,11 @@ def tsp_to_dtsp(
     # set ground truth values (i.e. values to be predicted)
     y_dtsp_graph.y = 1
     n_dtsp_graph.y = 0
+    # set instance ID
+    y_dtsp_graph.id = f"{y_dtsp_graph.id}_y"
+    n_dtsp_graph.id = f"{n_dtsp_graph.id}_n"
     # delete tensors that are not used for the DTSP
-    tensors_names = ["edge_index", "node_features", "edge_features", "y"]
+    tensors_names = ["id", "edge_index", "node_features", "edge_features", "y"]
     y_dtsp_graph = filter_tensors(data=y_dtsp_graph, tensor_names=tensors_names)
     n_dtsp_graph = filter_tensors(data=n_dtsp_graph, tensor_names=tensors_names)
     return y_dtsp_graph, n_dtsp_graph
