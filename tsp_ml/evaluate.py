@@ -1,10 +1,17 @@
 # -*- coding: utf-8 -*-
 import sys
+from pathlib import Path
+from typing import Optional
 
 import torch
 from datasets.tsp_dataset import TSPDataset
-from model_utils import get_model_name, load_model
-from paths import TSP_TEST_DATASET_FOLDER_PATH, TSP_TRAIN_DATASET_FOLDER_PATH
+from model_utils import load_model, set_torch_seed
+from paths import (
+    TSP_TEST_DATASET_FOLDER_PATH,
+    TSP_TEST_PREDICTIONS_FOLDER_PATH,
+    TSP_TRAIN_DATASET_FOLDER_PATH,
+    TSP_TRAIN_PREDICTIONS_FOLDER_PATH,
+)
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 
@@ -16,7 +23,13 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using {device}")
 
 
-def evaluate(model: torch.nn.Module, dataset: TSPDataset) -> ModelPerformance:
+def evaluate(
+    model: torch.nn.Module, dataset: TSPDataset, output_dir: Optional[str] = None
+) -> ModelPerformance:
+    """Evaluates the model by making predictions on the given dataset,
+    and then returns a performance report."""
+    set_torch_seed()
+
     model_performance = ModelPerformance()
     dataloader = DataLoader(
         dataset, shuffle=True, batch_size=batch_size, pin_memory=True, num_workers=4
@@ -29,10 +42,18 @@ def evaluate(model: torch.nn.Module, dataset: TSPDataset) -> ModelPerformance:
         scores = model(data=batch)
         pred = torch.argmax(scores, 1).to(int)
         model_performance.update(pred=pred, truth=batch.y)
-        if i == 30:
-            pass
-            # import pdb
-            # pdb.set_trace()
+        if output_dir is not None:
+            # save predictions
+            y_predictions = pred.detach().cpu().tolist()
+            y_truths = batch.y.detach().cpu().tolist()
+            row, _ = batch.edge_index
+            edge_batch = batch.batch[row]
+            instance_ids = [batch.id[idx] for idx in edge_batch.tolist()]
+            filepath = Path(output_dir) / "predictions.csv"
+            with open(filepath, "a") as file:
+                for (id, pred, truth) in zip(instance_ids, y_predictions, y_truths):
+                    csv_row = f"{id},{pred},{truth}\n"
+                    file.write(csv_row)
 
     dataset_size = len(dataset)
     print(f"Dataset size: {dataset_size}")
@@ -53,11 +74,22 @@ if __name__ == "__main__":
     train_dataset = TSPDataset(dataset_folderpath=TSP_TRAIN_DATASET_FOLDER_PATH)
     test_dataset = TSPDataset(dataset_folderpath=TSP_TEST_DATASET_FOLDER_PATH)
 
+    # load model
     trained_model_name = TRAINED_MODEL_NAME
     model = load_model(trained_model_name=trained_model_name)
+
     print("\n\nEvaluating the model on the train dataset")
-    train_model_performance = evaluate(model=model, dataset=train_dataset)
+    train_model_performance = evaluate(
+        model=model,
+        dataset=train_dataset,
+        output_dir=TSP_TRAIN_PREDICTIONS_FOLDER_PATH,
+    )
     train_model_performance.save(output_filename="train_" + trained_model_name)
+
     print("\n\nEvaluating the model on the test dataset")
-    test_model_performance = evaluate(model=model, dataset=test_dataset)
+    test_model_performance = evaluate(
+        model=model,
+        dataset=test_dataset,
+        output_dir=TSP_TEST_PREDICTIONS_FOLDER_PATH,
+    )
     test_model_performance.save(output_filename="test_" + trained_model_name)

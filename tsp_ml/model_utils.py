@@ -53,3 +53,13 @@ def get_model(model_name: str = "TSP_GGCN") -> torch.nn.Module:
         raise ValueError(f"No model named '{model_name}' found.")
     model = Model()
     return model
+
+
+# TODO move somewhere else?
+def set_torch_seed(seed: int = 42):
+    """manually choose seed to allow for deterministic reproduction of results"""
+    torch.manual_seed(seed=seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed=seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False

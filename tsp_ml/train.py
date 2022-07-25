@@ -6,7 +6,7 @@ from typing import Optional
 import torch
 from average_meter import AverageMeter
 from dataset_utils import get_class_weights, get_dataloaders
-from model_utils import get_model, save_model
+from model_utils import get_model, save_model, set_torch_seed
 from torch_geometric.data.batch import Batch
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
@@ -17,15 +17,6 @@ from tqdm import tqdm
 BATCH_SIZE = 10
 NUM_EPOCHS = 20
 LEARNING_RATE = 0.005
-
-
-def set_torch_seed(seed: int = 1234):
-    """manually choose seed to allow for deterministic reproduction of results"""
-    torch.manual_seed(seed=seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed=seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
 
 
 def validation_step(
