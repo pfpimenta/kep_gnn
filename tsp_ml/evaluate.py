@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 from model_performance import ModelPerformance
 
-TRAINED_MODEL_NAME = "TSP_GGCN_v4_weights_2022_07_22_19h44"
+TRAINED_MODEL_NAME = "TSP_GGCN_2022_07_25_22h40"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using {device}")
@@ -28,7 +28,24 @@ def evaluate(
 ) -> ModelPerformance:
     """Evaluates the model by making predictions on the given dataset,
     and then returns a performance report."""
+
     set_torch_seed()
+
+    # check if predictions file already exist
+    if output_dir is not None:
+        save_predictions = True
+        filepath = Path(output_dir) / "predictions.csv"
+        if filepath.exists():
+            replace_file = input(
+                f"File already exists: {filepath} ... Replace it? (Y to confirm): "
+            ).lower()
+            if replace_file == "y":
+                print(f"Deleting {filepath} ...")
+                filepath.unlink()
+                print(f"Will save predictions at {filepath}.")
+            else:
+                print("Predictions will not be saved.")
+                save_predictions = False
 
     model_performance = ModelPerformance()
     dataloader = DataLoader(
@@ -42,24 +59,25 @@ def evaluate(
         scores = model(data=batch)
         pred = torch.argmax(scores, 1).to(int)
         model_performance.update(pred=pred, truth=batch.y)
-        if output_dir is not None:
+        if save_predictions:
             # save predictions
             y_predictions = pred.detach().cpu().tolist()
             y_truths = batch.y.detach().cpu().tolist()
             row, _ = batch.edge_index
             edge_batch = batch.batch[row]
             instance_ids = [batch.id[idx] for idx in edge_batch.tolist()]
-            filepath = Path(output_dir) / "predictions.csv"
             with open(filepath, "a") as file:
                 for (id, pred, truth) in zip(instance_ids, y_predictions, y_truths):
-                    csv_row = f"{id},{pred},{truth}\n"
+                    csv_row = f"{id},{int(pred)},{int(truth)}\n"
                     file.write(csv_row)
 
+    # print dataset information
     dataset_size = len(dataset)
     print(f"Dataset size: {dataset_size}")
     print(f"Dataset total num_edges: {dataset.num_edges}")
     avg_num_edges = int(dataset.num_edges) / int(dataset_size)
     print(f"Mean num_edges per graph: {avg_num_edges}")
+
     model_performance.print()
     return model_performance
 
