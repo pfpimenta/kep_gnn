@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 from model_performance import ModelPerformance
 
-TRAINED_MODEL_NAME = "TSP_GGCN_2022_07_25_22h40"
+TRAINED_MODEL_NAME = "TSP_GGCN_2022_07_25_23h04"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using {device}")

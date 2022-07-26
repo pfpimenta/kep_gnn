@@ -20,6 +20,8 @@ from paths import (
 )
 from tsp_instance import generate_tsp_instance, solve_tsp_instance
 
+NUM_SAMPLES = 1000  # usaram 2**20 no paper
+
 
 def generate_tsp_dataset(num_samples: int, output_dir: str):
     for i in range(num_samples):
@@ -60,13 +62,18 @@ def generate_tsp_dataset(num_samples: int, output_dir: str):
 
 
 if __name__ == "__main__":
-    num_samples = 1000  # usaram 2**20 no paper
+    # test dataset
     generate_tsp_dataset(
-        num_samples=num_samples, output_dir=TSP_TEST_DATASET_FOLDER_PATH
+        num_samples=NUM_SAMPLES,
+        output_dir=TSP_TEST_DATASET_FOLDER_PATH,
     )
+    # train dataset
     generate_tsp_dataset(
-        num_samples=num_samples, output_dir=TSP_TRAIN_DATASET_FOLDER_PATH
+        num_samples=NUM_SAMPLES,
+        output_dir=TSP_TRAIN_DATASET_FOLDER_PATH,
     )
+    # validation dataset
     generate_tsp_dataset(
-        num_samples=num_samples, output_dir=TSP_VAL_DATASET_FOLDER_PATH
+        num_samples=NUM_SAMPLES,
+        output_dir=TSP_VAL_DATASET_FOLDER_PATH,
     )

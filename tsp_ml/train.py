@@ -15,8 +15,9 @@ from tqdm import tqdm
 
 
 BATCH_SIZE = 10
-NUM_EPOCHS = 20
+NUM_EPOCHS = 50
 LEARNING_RATE = 0.005
+MODEL_NAME = "TSP_GGCN"
 
 
 def validation_step(
@@ -183,4 +184,4 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using {device}")
 
-    train(device=device, model_name="TSP_GGCN_v4_weights", dataset_name="TSP")
+    train(device=device, model_name="TSP_GGCN", dataset_name="TSP")
