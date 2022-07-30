@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# This script contains functions for training a model
 import sys
 import time
 from typing import Optional
@@ -17,7 +18,8 @@ from tqdm import tqdm
 BATCH_SIZE = 10
 NUM_EPOCHS = 50
 LEARNING_RATE = 0.005
-MODEL_NAME = "TSP_GGCN"
+MODEL_NAME = "TSP_GGCN_large"
+DATASET_NAME = "TSP"
 
 
 def validation_step(
@@ -147,26 +149,34 @@ def train_model(
 
 
 def train(
-    device: torch.device, model_name: str = "TSP_GGCN", dataset_name: str = "TSP"
+    device: torch.device,
+    model_name: str = "TSP_GGCN",
+    dataset_name: str = "TSP",
+    batch_size: int = 10,
+    num_epochs: int = 10,
+    learning_rate: float = 0.01,
+    use_validation: bool = True,
 ):
     set_torch_seed()
 
     # initialize dataloaders
     train_dataloader, val_dataloader = get_dataloaders(
-        dataset_name=dataset_name, batch_size=BATCH_SIZE
+        dataset_name=dataset_name, batch_size=batch_size
     )
+    if use_validation is False:
+        val_dataloader = None
 
     # initialize model, optimizer, and loss function
     model = get_model(model_name=model_name)
     adam_optimizer = torch.optim.Adam(
-        model.parameters(), lr=LEARNING_RATE, weight_decay=5e-4
+        model.parameters(), lr=learning_rate, weight_decay=5e-4
     )
     class_weights = get_class_weights(dataloader=train_dataloader)
     loss_function = torch.nn.CrossEntropyLoss(weight=torch.tensor(class_weights))
 
     # train model
     model = train_model(
-        num_epochs=NUM_EPOCHS,
+        num_epochs=num_epochs,
         model=model,
         device=device,
         train_dataloader=train_dataloader,
@@ -184,4 +194,4 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using {device}")
 
-    train(device=device, model_name="TSP_GGCN", dataset_name="TSP")
+    train(device=device, model_name=MODEL_NAME, dataset_name=DATASET_NAME)
