@@ -18,13 +18,17 @@ from tqdm import tqdm
 from model_performance import ModelPerformance
 
 TRAINED_MODEL_NAME = "TSP_GGCN_2022_07_25_23h04"
+BATCH_SIZE = 10
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using {device}")
 
 
 def evaluate(
-    model: torch.nn.Module, dataset: TSPDataset, output_dir: Optional[str] = None
+    model: torch.nn.Module,
+    dataset: TSPDataset,
+    batch_size: int,
+    output_dir: Optional[str] = None,
 ) -> ModelPerformance:
     """Evaluates the model by making predictions on the given dataset,
     and then returns a performance report."""
@@ -33,6 +37,7 @@ def evaluate(
 
     # check if predictions file already exist
     if output_dir is not None:
+        output_dir.mkdir(parents=True, exist_ok=True)
         save_predictions = True
         filepath = Path(output_dir) / "predictions.csv"
         if filepath.exists():
@@ -46,6 +51,9 @@ def evaluate(
             else:
                 print("Predictions will not be saved.")
                 save_predictions = False
+        if save_predictions:
+            with open(filepath, "a") as file:
+                file.write("id, predictions, truth\n")
 
     model_performance = ModelPerformance()
     dataloader = DataLoader(
@@ -88,26 +96,30 @@ if __name__ == "__main__":
     print(f"Using {device}")
 
     # setup data
-    batch_size = 10
     train_dataset = TSPDataset(dataset_folderpath=TSP_TRAIN_DATASET_FOLDER_PATH)
     test_dataset = TSPDataset(dataset_folderpath=TSP_TEST_DATASET_FOLDER_PATH)
 
     # load model
-    trained_model_name = TRAINED_MODEL_NAME
-    model = load_model(trained_model_name=trained_model_name)
+    model = load_model(trained_model_name=TRAINED_MODEL_NAME)
 
     print("\n\nEvaluating the model on the train dataset")
+    # TODO refactor to a function paths.get_predictions_dir(trained_model_name: str, step: str)
+    output_dir = TSP_TRAIN_PREDICTIONS_FOLDER_PATH / TRAINED_MODEL_NAME
     train_model_performance = evaluate(
         model=model,
         dataset=train_dataset,
-        output_dir=TSP_TRAIN_PREDICTIONS_FOLDER_PATH,
+        output_dir=output_dir,
+        batch_size=BATCH_SIZE,
     )
-    train_model_performance.save(output_filename="train_" + trained_model_name)
+    train_model_performance.save(output_filename="train_" + TRAINED_MODEL_NAME)
 
     print("\n\nEvaluating the model on the test dataset")
+    # TODO refactor to a function paths.get_predictions_dir(trained_model_name: str, step: str)
+    output_dir = TSP_TEST_PREDICTIONS_FOLDER_PATH / TRAINED_MODEL_NAME
     test_model_performance = evaluate(
         model=model,
         dataset=test_dataset,
-        output_dir=TSP_TEST_PREDICTIONS_FOLDER_PATH,
+        output_dir=output_dir,
+        batch_size=BATCH_SIZE,
     )
-    test_model_performance.save(output_filename="test_" + trained_model_name)
+    test_model_performance.save(output_filename="test_" + TRAINED_MODEL_NAME)
