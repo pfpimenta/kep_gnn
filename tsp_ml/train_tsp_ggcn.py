@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import torch
-from train import train
+from train import DATASET_NAME, train
 
 BATCH_SIZE = 10
-NUM_EPOCHS = 3
-LEARNING_RATE = 0.005
-MODEL_NAME = "DTSP_GNN_Prates"
+NUM_EPOCHS = 650
+LEARNING_RATE = 0.003
+MODEL_NAME = "TSP_GGCN"
+DATASET_NAME = "TSP"
 
 # TODO save training params with model
 
@@ -17,7 +18,7 @@ if __name__ == "__main__":
     train(
         device=device,
         model_name=MODEL_NAME,
-        dataset_name="DTSP",
+        dataset_name="TSP",
         batch_size=BATCH_SIZE,
         num_epochs=NUM_EPOCHS,
         learning_rate=LEARNING_RATE,
