@@ -54,19 +54,28 @@ class ModelPerformance:
 
     @property
     def precision(self) -> float:
-        precision = self.TP / (self.TP + self.FP)
+        if self.TP == 0:
+            precision = 0
+        else:
+            precision = self.TP / (self.TP + self.FP)
         return precision
 
     @property
     def recall(self) -> float:
-        recall = self.TP / (self.TP + self.FN)
+        if self.TP == 0:
+            recall = 0
+        else:
+            recall = self.TP / (self.TP + self.FN)
         return recall
 
     @property
     def accuracy(self) -> float:
         total_corrects = self.TN + self.TP
-        total_edges = total_corrects + self.FN + self.FP
-        accuracy = total_corrects / total_edges
+        if self.TP == 0:
+            accuracy = 0
+        else:
+            total_edges = total_corrects + self.FN + self.FP
+            accuracy = total_corrects / total_edges
         return accuracy
 
     @property
@@ -97,8 +106,6 @@ class ModelPerformance:
             # return cls(TP= , )
 
     def print(self):
-        # Prints the report information in a "friendly and pretty" way
-        # TODO
         print(f"TP, FP: {self.TP, self.FP}")
         print(f"TN, FN: {self.TN, self.FN}")
         print(f"Precision: {self.precision:.4f}")
