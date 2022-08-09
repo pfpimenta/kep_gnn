@@ -1,41 +1,37 @@
 # -*- coding: utf-8 -*-
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 import torch
-from datasets.tsp_dataset import TSPDataset
+from dataset_utils import get_dataset
 from model_utils import load_model, set_torch_seed
-from paths import (
-    TSP_TEST_DATASET_FOLDER_PATH,
-    TSP_TEST_PREDICTIONS_FOLDER_PATH,
-    TSP_TRAIN_DATASET_FOLDER_PATH,
-    TSP_TRAIN_PREDICTIONS_FOLDER_PATH,
-)
+from paths import get_predictions_folder_path
+from torch_geometric.data import Dataset
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 
 from model_performance import ModelPerformance
 
-TRAINED_MODEL_NAME = "TSP_GGCN_2022_07_25_23h04"
+DATASET_NAME = "KEP"
+TRAINED_MODEL_NAME = "2022_08_08_17h35_KEP_GCN"
 BATCH_SIZE = 10
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using {device}")
 
 
-def evaluate(
-    model: torch.nn.Module,
-    dataset: TSPDataset,
-    batch_size: int,
-    output_dir: Optional[str] = None,
-) -> ModelPerformance:
-    """Evaluates the model by making predictions on the given dataset,
-    and then returns a performance report."""
+def print_dataset_information(dataset: Dataset) -> None:
+    dataset_size = len(dataset)
+    print(f"Dataset size: {dataset_size}")
+    print(f"Dataset total num_edges: {dataset.num_edges}")
+    avg_num_edges = int(dataset.num_edges) / int(dataset_size)
+    print(f"Mean num_edges per graph: {avg_num_edges}")
 
-    set_torch_seed()
 
-    # check if predictions file already exist
+def create_predictions_CSV(
+    output_dir: str,
+) -> Tuple[bool, str]:
     if output_dir is not None:
         output_dir.mkdir(parents=True, exist_ok=True)
         save_predictions = True
@@ -53,11 +49,29 @@ def evaluate(
                 save_predictions = False
         if save_predictions:
             with open(filepath, "a") as file:
-                file.write("id, predictions, truth\n")
+                # create CSV file with header and 0 rows
+                csv_header = "id, predictions, truth\n"
+                file.write(csv_header)
+    return save_predictions, filepath
+
+
+def evaluate(
+    model: torch.nn.Module,
+    dataset: torch.Dataset,
+    batch_size: int,
+    output_dir: Optional[str] = None,
+) -> ModelPerformance:
+    """Evaluates the model by making predictions on the given dataset,
+    and then returns a performance report."""
+
+    set_torch_seed()
+
+    # check if predictions file already exist
+    save_predictions, filepath = create_predictions_CSV(output_dir=output_dir)
 
     model_performance = ModelPerformance()
     dataloader = DataLoader(
-        dataset, shuffle=True, batch_size=batch_size, pin_memory=True, num_workers=4
+        dataset, shuffle=False, batch_size=batch_size, pin_memory=True, num_workers=4
     )
     model.eval()  # set the model to evaluation mode
     for i, batch in enumerate(tqdm(dataloader, desc="Evaluation", file=sys.stdout)):
@@ -65,7 +79,11 @@ def evaluate(
         label = batch.y
         label = label.to(torch.float32)
         scores = model(data=batch)
-        pred = torch.argmax(scores, 1).to(int)
+        # TODO evaluate KEP
+        if dataset.dataset_name == "DTSP":
+            pred = scores.to(int)  # DTSP
+        elif dataset.dataset_name == "TSP":
+            pred = torch.argmax(scores, 1).to(int)  # TSP
         model_performance.update(pred=pred, truth=batch.y)
         if save_predictions:
             # save predictions
@@ -79,13 +97,7 @@ def evaluate(
                     csv_row = f"{id},{int(pred)},{int(truth)}\n"
                     file.write(csv_row)
 
-    # print dataset information
-    dataset_size = len(dataset)
-    print(f"Dataset size: {dataset_size}")
-    print(f"Dataset total num_edges: {dataset.num_edges}")
-    avg_num_edges = int(dataset.num_edges) / int(dataset_size)
-    print(f"Mean num_edges per graph: {avg_num_edges}")
-
+    print_dataset_information(dataset=dataset)
     model_performance.print()
     return model_performance
 
@@ -96,30 +108,32 @@ if __name__ == "__main__":
     print(f"Using {device}")
 
     # setup data
-    train_dataset = TSPDataset(dataset_folderpath=TSP_TRAIN_DATASET_FOLDER_PATH)
-    test_dataset = TSPDataset(dataset_folderpath=TSP_TEST_DATASET_FOLDER_PATH)
+    train_dataset = get_dataset(dataset_name=DATASET_NAME, step="train")
+    test_dataset = get_dataset(dataset_name=DATASET_NAME, step="test")
 
     # load model
     model = load_model(trained_model_name=TRAINED_MODEL_NAME)
 
     print("\n\nEvaluating the model on the train dataset")
-    # TODO refactor to a function paths.get_predictions_dir(trained_model_name: str, step: str)
-    output_dir = TSP_TRAIN_PREDICTIONS_FOLDER_PATH / TRAINED_MODEL_NAME
+    predictions_dir = get_predictions_folder_path(
+        dataset_name=DATASET_NAME, step="train"
+    )
     train_model_performance = evaluate(
         model=model,
         dataset=train_dataset,
-        output_dir=output_dir,
+        output_dir=predictions_dir,
         batch_size=BATCH_SIZE,
     )
     train_model_performance.save(output_filename="train_" + TRAINED_MODEL_NAME)
 
     print("\n\nEvaluating the model on the test dataset")
-    # TODO refactor to a function paths.get_predictions_dir(trained_model_name: str, step: str)
-    output_dir = TSP_TEST_PREDICTIONS_FOLDER_PATH / TRAINED_MODEL_NAME
+    predictions_dir = get_predictions_folder_path(
+        dataset_name=DATASET_NAME, step="train"
+    )
     test_model_performance = evaluate(
         model=model,
         dataset=test_dataset,
-        output_dir=output_dir,
+        output_dir=predictions_dir,
         batch_size=BATCH_SIZE,
     )
     test_model_performance.save(output_filename="test_" + TRAINED_MODEL_NAME)

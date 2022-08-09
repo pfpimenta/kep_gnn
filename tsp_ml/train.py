@@ -6,14 +6,13 @@ from typing import Optional
 
 import torch
 from average_meter import AverageMeter
-from dataset_utils import get_class_weights, get_dataloaders
+from dataset_utils import get_dataloaders
+from kep_loss import KEPLoss
 from model_utils import get_model, save_model, set_torch_seed
+from torch.nn.functional import one_hot
 from torch_geometric.data.batch import Batch
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
-
-# from training_report import TrainingReport
-
 
 BATCH_SIZE = 10
 NUM_EPOCHS = 50
@@ -31,12 +30,12 @@ def validation_step(
 ) -> AverageMeter:
     # predict
     batch = batch.to(device)
-    edge_scores = model(batch)
+    scores = model(batch)
     label = batch.y
     # calculate loss
-    loss = loss_function(edge_scores, label)
+    loss = loss_function(scores, label)
     # save batch loss in AverageMeter object
-    numInputs = edge_scores.view(-1, 1).size(0)
+    numInputs = scores.view(-1, 1).size(0)
     epoch_loss.update(loss.detach().item(), numInputs)
     return epoch_loss
 
@@ -68,19 +67,23 @@ def training_step(
     optimizer: torch.optim.Optimizer,
     loss_function: torch.nn.modules.loss._Loss,
     epoch_loss: AverageMeter,
+    dataset_name: str,
 ) -> AverageMeter:
     optimizer.zero_grad()
     # predict
     batch = batch.to(device)
-    edge_scores = model(batch)
-    label = batch.y
+    scores = model(batch).to(torch.float32)
     # calculate loss
-    loss = loss_function(edge_scores, label)
+    if dataset_name == "TSP" or dataset_name == "DTSP":
+        label = one_hot(batch.y).to(torch.float32)
+        loss = loss_function(scores, label)
+    elif dataset_name == "KEP":
+        loss = loss_function(scores, batch.edge_weights)  # KEP loss
     # backpropagate
     loss.backward()
     optimizer.step()
     # save batch loss in AverageMeter object
-    numInputs = edge_scores.view(-1, 1).size(0)
+    numInputs = scores.view(-1, 1).size(0)
     epoch_loss.update(loss.detach().item(), numInputs)
     return epoch_loss
 
@@ -94,6 +97,7 @@ def training_epoch(
 ) -> float:
     epoch_loss = AverageMeter()
     model.train()  # set the model to training mode
+    dataset_name = dataloader.dataset.dataset_name
     for _, batch in enumerate(tqdm(dataloader, desc="Training", file=sys.stdout)):
         epoch_loss = training_step(
             model=model,
@@ -102,9 +106,35 @@ def training_epoch(
             optimizer=optimizer,
             loss_function=loss_function,
             epoch_loss=epoch_loss,
+            dataset_name=dataset_name,
         )
     # TODO optionally save predictions
     return epoch_loss.average
+
+
+def get_training_report(
+    num_epochs: int,
+    model: torch.nn.Module,
+    device: torch.device,
+    train_dataloader: DataLoader,  # TODO remove?
+    optimizer: torch.optim.Optimizer,
+    loss_function: torch.nn.modules.loss._Loss,
+):
+    """Returns a dictionary containing information about the current training run"""
+    loss_dict = dict(loss_function.state_dict())
+    loss_params = {k: v.tolist() for k, v in loss_dict.items()}
+    model_architecture_name = model.__class__.__name__
+    training_report = {
+        "num_epochs": num_epochs,
+        "model_architecture_name": model_architecture_name,
+        "model_architecture": str(model),
+        "device": str(device),
+        "optimizer": optimizer.__class__.__name__,
+        "optimizer_params": optimizer.state_dict()["param_groups"],
+        "loss_function": loss_function.__class__.__name__,
+        "loss_params": loss_params,
+    }
+    return training_report
 
 
 def train_model(
@@ -118,8 +148,15 @@ def train_model(
 ) -> torch.nn.Module:
     # TODO description
     print("\nTraining..")
+    training_report = get_training_report(
+        num_epochs=num_epochs,
+        model=model,
+        device=device,
+        train_dataloader=train_dataloader,
+        optimizer=optimizer,
+        loss_function=loss_function,
+    )
     start = time.time()
-    # training_report = TrainingReport() # TODO
     for ep in range(1, num_epochs + 1):
         optimizer.zero_grad()
         print(f"Epoch [{ep}/{num_epochs}]")
@@ -142,10 +179,27 @@ def train_model(
 
     end = time.time()
     elapsed_time = end - start
-    # training_report.training_time = elapsed_time
+    training_report["training_time"] = elapsed_time
+    training_report["training_timestamp"] = start
     print(f"Total training time: {elapsed_time} seconds")
-    # training_report.save()
-    return model
+    return model, training_report
+
+
+def get_loss_function(dataset_name: str, train_dataloader: Optional[DataLoader] = None):
+    if dataset_name == "TSP":
+        if train_dataloader is None:
+            raise ValueError(
+                f"A dataloader for the training data must be passed when using the {dataset_name} dataset."
+            )
+        class_weights = train_dataloader.dataset.get_class_weights
+        loss_function = torch.nn.CrossEntropyLoss(weight=torch.tensor(class_weights))
+    elif dataset_name == "DTSP":
+        loss_function = torch.nn.L1Loss()
+    elif dataset_name == "KEP":
+        loss_function = KEPLoss()
+    else:
+        raise ValueError(f"No dataset named '{dataset_name}' found.")
+    return loss_function
 
 
 def train(
@@ -171,11 +225,12 @@ def train(
     adam_optimizer = torch.optim.Adam(
         model.parameters(), lr=learning_rate, weight_decay=5e-4
     )
-    class_weights = get_class_weights(dataloader=train_dataloader)
-    loss_function = torch.nn.CrossEntropyLoss(weight=torch.tensor(class_weights))
+    loss_function = get_loss_function(
+        dataset_name=dataset_name, train_dataloader=train_dataloader
+    )
 
     # train model
-    model = train_model(
+    model, training_report = train_model(
         num_epochs=num_epochs,
         model=model,
         device=device,
@@ -186,7 +241,7 @@ def train(
     )
 
     # save model
-    save_model(model=model)
+    save_model(model=model, training_report=training_report)
 
 
 if __name__ == "__main__":
