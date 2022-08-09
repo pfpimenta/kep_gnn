@@ -45,3 +45,7 @@ class DTSPDataset(Dataset):
         filepath = Path(self.dataset_folderpath) / self.processed_file_names[idx]
         data = torch.load(filepath)
         return data
+
+    @property
+    def dataset_name(self) -> str:
+        return "DTSP"

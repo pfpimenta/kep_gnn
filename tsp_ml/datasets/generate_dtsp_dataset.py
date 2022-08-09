@@ -12,14 +12,7 @@ import torch_geometric
 # to allow imports from outside the tsp_ml/datasets/ package
 sys.path.insert(0, "/home/pimenta/tsp_ml/tsp_ml")
 from dataset_utils import filter_tensors
-from paths import (
-    DTSP_TEST_DATASET_FOLDER_PATH,
-    DTSP_TRAIN_DATASET_FOLDER_PATH,
-    DTSP_VAL_DATASET_FOLDER_PATH,
-    TSP_TEST_DATASET_FOLDER_PATH,
-    TSP_TRAIN_DATASET_FOLDER_PATH,
-    TSP_VAL_DATASET_FOLDER_PATH,
-)
+from paths import get_dataset_folder_path
 
 
 def tsp_to_dtsp(
@@ -90,20 +83,26 @@ def generate_dtsp_dataset(
 
 if __name__ == "__main__":
     cost_deviation = 0.02
+    tsp_train_dataset_dir = get_dataset_folder_path(dataset_name="TSP", step="train")
+    dtsp_train_dataset_dir = get_dataset_folder_path(dataset_name="DTSP", step="train")
     generate_dtsp_dataset(
-        tsp_instances_dir=TSP_TRAIN_DATASET_FOLDER_PATH,
-        output_dir=DTSP_TRAIN_DATASET_FOLDER_PATH,
+        tsp_instances_dir=tsp_train_dataset_dir,
+        output_dir=dtsp_train_dataset_dir,
         cost_deviation=cost_deviation,
     )
 
+    tsp_test_dataset_dir = get_dataset_folder_path(dataset_name="TSP", step="test")
+    dtsp_test_dataset_dir = get_dataset_folder_path(dataset_name="DTSP", step="test")
     generate_dtsp_dataset(
-        tsp_instances_dir=TSP_TEST_DATASET_FOLDER_PATH,
-        output_dir=DTSP_TEST_DATASET_FOLDER_PATH,
+        tsp_instances_dir=tsp_test_dataset_dir,
+        output_dir=dtsp_test_dataset_dir,
         cost_deviation=cost_deviation,
     )
 
+    tsp_val_dataset_dir = get_dataset_folder_path(dataset_name="TSP", step="val")
+    dtsp_val_dataset_dir = get_dataset_folder_path(dataset_name="DTSP", step="val")
     generate_dtsp_dataset(
-        tsp_instances_dir=TSP_VAL_DATASET_FOLDER_PATH,
-        output_dir=DTSP_VAL_DATASET_FOLDER_PATH,
+        tsp_instances_dir=tsp_val_dataset_dir,
+        output_dir=dtsp_val_dataset_dir,
         cost_deviation=cost_deviation,
     )

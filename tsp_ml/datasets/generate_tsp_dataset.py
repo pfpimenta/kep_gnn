@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-# script to randomly generate n instances of the TSP problem
+# script to randomly generate NUM_SAMPLES instances of the Travelling Salesperson Problem (TSP)
 # and their optimal solution routes
-import os
 import sys
-from pathlib import Path
 
 import networkx as nx
 import torch
@@ -13,14 +11,13 @@ from torch_geometric.utils.convert import from_networkx
 sys.path.insert(0, "/home/pimenta/tsp_ml/tsp_ml")
 
 from dataset_utils import filter_tensors
-from paths import (
-    TSP_TEST_DATASET_FOLDER_PATH,
-    TSP_TRAIN_DATASET_FOLDER_PATH,
-    TSP_VAL_DATASET_FOLDER_PATH,
-)
+from paths import get_dataset_folder_path
 from tsp_instance import generate_tsp_instance, solve_tsp_instance
 
 NUM_SAMPLES = 1000  # usaram 2**20 no paper
+
+# TODO use second, third, fourth, etc. best routes as labels as well
+# (1/x instead of 1, where x=2, 3, 4, etc.)
 
 
 def generate_tsp_dataset(num_samples: int, output_dir: str):
@@ -62,18 +59,21 @@ def generate_tsp_dataset(num_samples: int, output_dir: str):
 
 
 if __name__ == "__main__":
-    # test dataset
-    generate_tsp_dataset(
-        num_samples=NUM_SAMPLES,
-        output_dir=TSP_TEST_DATASET_FOLDER_PATH,
-    )
     # train dataset
+    tsp_train_dataset_dir = get_dataset_folder_path(dataset_name="TSP", step="train")
     generate_tsp_dataset(
         num_samples=NUM_SAMPLES,
-        output_dir=TSP_TRAIN_DATASET_FOLDER_PATH,
+        output_dir=tsp_train_dataset_dir,
+    )
+    # test dataset
+    tsp_test_dataset_dir = get_dataset_folder_path(dataset_name="TSP", step="test")
+    generate_tsp_dataset(
+        num_samples=NUM_SAMPLES,
+        output_dir=tsp_test_dataset_dir,
     )
     # validation dataset
+    tsp_val_dataset_dir = get_dataset_folder_path(dataset_name="TSP", step="val")
     generate_tsp_dataset(
         num_samples=NUM_SAMPLES,
-        output_dir=TSP_VAL_DATASET_FOLDER_PATH,
+        output_dir=tsp_val_dataset_dir,
     )
