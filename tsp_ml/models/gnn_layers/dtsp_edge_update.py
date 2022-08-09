@@ -55,36 +55,14 @@ class DTSP_EdgeUpdate(MessagePassing):
         self.edge_mlp.reset_parameters()
         # self.bias.data.zero_()
 
-    # def edge_update(
-    #     self, edge_features: Tensor, node_features: Tensor, edge_index: Tensor
-    # ) -> Tensor:
-    #     r"""Computes or updates features for each edge in the graph.
-    #     This function can take any argument as input which was initially passed
-    #     to :meth:`edge_updater`.
-    #     Furthermore, tensors passed to :meth:`edge_updater` can be mapped to
-    #     the respective nodes :math:`i` and :math:`j` by appending :obj:`_i` or
-    #     :obj:`_j` to the variable name, *.e.g.* :obj:`x_i` and :obj:`x_j`.
-    #     """
-    #     # compute messages for each node
-    #     node_features = self.node_message_mlp(node_features)
-    #     # aggregate node messages
-    #     row, col = edge_index
-    #     src_node_features = node_features[row]
-    #     dst_node_features = node_features[col]
-    #     aggregated_messages = self.aggregation(
-    #         feature_tensors=[src_node_features, dst_node_features]
-    #     )
-    #     # concatenate with the input edge features and compute output edge features
-    #     edge_features = self.edge_mlp(edge_features + aggregated_messages)
-    #     return edge_features
-
     def forward(
         self, edge_index: Tensor, edge_features: Tensor, node_features: Tensor
     ) -> Tensor:
-        # edge_features has shape [num_edges, input_edge_feature_size]
-        # node_features has shape [num_nodes, input_node_feature_size]
-        # edge_index has shape [2, num_edges]
-
+        """
+        edge_features has shape [num_edges, input_edge_feature_size]
+        node_features has shape [num_nodes, input_node_feature_size]
+        edge_index has shape [2, num_edges]
+        """
         # compute messages for each node
         node_features = self.node_message_mlp(node_features)
         # aggregate node messages

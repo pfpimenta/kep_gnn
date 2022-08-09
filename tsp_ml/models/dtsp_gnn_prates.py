@@ -2,6 +2,7 @@
 import torch
 from models.gnn_layers import DTSP_EdgeUpdate, DTSP_NodeUpdate
 from torch.nn import RNN, Linear
+from torch_geometric.nn import global_mean_pool
 
 
 class DTSP_GNN_Prates(torch.nn.Module):
@@ -11,7 +12,7 @@ class DTSP_GNN_Prates(torch.nn.Module):
     The article can be found at https://arxiv.org/abs/1809.02721
     """
 
-    def __init__(self):
+    def __init__(self, tmax: int = 10):
         super().__init__()
         input_edge_features_size = 2  # edge_weight and input cost
         init_node_features_size = 2
@@ -39,8 +40,9 @@ class DTSP_GNN_Prates(torch.nn.Module):
             input_edge_feature_size=hidden_edge_features_sizes[0],
             output_node_feature_size=hidden_node_features_sizes[0],
         )
-        # TODO use this layer several times
+        # TODO use this layer {tmax} times
 
+        # TODO use RNN
         # https://pytorch.org/docs/stable/generated/torch.nn.RNN.html
         # self.rnn_seila_renomear = RNN(input_size=, layer_size)
 
@@ -49,13 +51,17 @@ class DTSP_GNN_Prates(torch.nn.Module):
         self.update_edge_features = DTSP_EdgeUpdate(
             input_edge_feature_size=hidden_edge_features_sizes[0],
             input_node_feature_size=hidden_node_features_sizes[0],
-            output_edge_feature_size=2,
+            output_edge_feature_size=hidden_edge_features_sizes[1],
         )
-        # TODO use this layer several times
+        # TODO use this layer {tmax} times
 
         # TODO
         # translate edge embeddings to logits probabilities
         # edge_logits =
+        self.fully_connected_edges_logit_prob = Linear(
+            in_features=hidden_edge_features_sizes[1],
+            out_features=1,
+        )
 
     def forward(self, data):
         edge_index = data.edge_index
@@ -73,6 +79,7 @@ class DTSP_GNN_Prates(torch.nn.Module):
         edge_features = self.fully_connected_edges(edge_features)
 
         # loop:
+        # TODO actually loop this part: tmax times
         # - update node features with messages from edges
         node_features = self.update_node_features(
             edge_index=edge_index,
@@ -88,15 +95,14 @@ class DTSP_GNN_Prates(torch.nn.Module):
         )
 
         # translate edge embeddings to logits probabilities
-        # softmax
-        import pdb
+        # TODO try to use softmax and 2 logits, so that CrossEntropyLoss
+        # for binary classification can be used
+        edge_features = self.fully_connected_edges_logit_prob(edge_features)
 
-        pdb.set_trace()
-        edge_features = torch.softmax(edge_features)
-        # TODO
-        # average logits and translate to probability:
-        # pred = sigmoid(mean(edge_logits))
-        # return pred
-
-        # DEBUG
-        return self.fully_connected_nodes(node_features)
+        # average logits
+        row, col = edge_index
+        edge_batch = data.batch[row]
+        logits = global_mean_pool(x=edge_features, batch=edge_batch)
+        # translate to probability
+        prediction = torch.sigmoid(logits).flatten()
+        return prediction

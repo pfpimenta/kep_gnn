@@ -69,9 +69,11 @@ class DTSP_NodeUpdate(MessagePassing):
         edge_features: Tensor,
         node_features: Tensor,
     ) -> Tensor:
-        # edge_features has shape [num_edges, input_edge_feature_size]
-        # node_features has shape [num_nodes, input_node_feature_size]
-        # edge_index has shape [2, num_edges]
+        """
+        edge_features has shape [num_edges, input_edge_feature_size]
+        node_features has shape [num_nodes, input_node_feature_size]
+        edge_index has shape [2, num_edges]
+        """
         num_nodes = node_features.shape[0]
 
         # compute messages for each edge
