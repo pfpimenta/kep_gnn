@@ -7,14 +7,6 @@ import torch
 from models import AVAILABLE_MODELS
 from paths import TRAINED_MODELS_FOLDER_PATH
 
-# __AVAILABLE_MODELS = {
-#     "TSP_GGCN": TSP_GGCN,
-#     "TSP_GGCN_large": TSP_GGCN_large,
-#     "TSP_GGCN_v4_weights": TSP_GGCN_v4_weights,
-#     "DTSP_GNN_Prates": DTSP_GNN_Prates,
-#     "KEP_GCN": KEP_GCN,
-# }
-
 
 def save_dict_to_json(dict: Dict[str, Any], json_filepath: str):
     """Saves dictionary in a JSON file formatted with 'pretty-print' style"""
