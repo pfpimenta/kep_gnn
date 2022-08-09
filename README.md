@@ -1,5 +1,9 @@
 # tsp_ml
-The goal of this repository is to solve the Traveling Salesperson Problem (TSP) with Machine Learning (ML) methods.
+The goal of this repository was, initially, to solve the __Traveling Salesperson Problem__ (TSP) with Machine Learning (ML) methods.
+
+The decision variant of the TSP problem, the __Decision TSP__ (or DTSP) is also addressed. A description of the problem and a ML method to solve it can be found at the article "_Learning to Solve NP-Complete Problems - A Graph Neural Network for Decision TSP_" (https://arxiv.org/abs/1809.02721).
+
+Another problem, the __Kidney Exchange Problem__ (KEP), is also addressed in a similar fashion. The problem definition can be found at the article "_Finding long chains in kidney exchange using the traveling salesman problem_" (https://www.pnas.org/doi/10.1073/pnas.1421853112).
 
 ## Installation
 
@@ -32,6 +36,11 @@ python3 tsp_ml/datasets/generate_tsp_dataset.py
 #### * Generating the DTSP dataset
 ```bashrc
 python3 tsp_ml/datasets/generate_dtsp_dataset.py
+```
+
+#### * Generating the KEP dataset
+```bashrc
+python3 tsp_ml/datasets/generate_kep_dataset.py
 ```
 
 #### * Training a model
