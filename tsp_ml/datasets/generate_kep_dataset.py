@@ -11,11 +11,7 @@ from torch_geometric.utils.convert import from_networkx
 
 # to allow imports from outside the tsp_ml/datasets/ package
 sys.path.insert(0, "/home/pimenta/tsp_ml/tsp_ml")
-from paths import (
-    KEP_TEST_DATASET_FOLDER_PATH,
-    KEP_TRAIN_DATASET_FOLDER_PATH,
-    KEP_VAL_DATASET_FOLDER_PATH,
-)
+from paths import get_dataset_folder_path
 
 ## script parameters
 NUM_INSTANCES = 100
@@ -105,30 +101,34 @@ def generate_kep_dataset(
 
 
 if __name__ == "__main__":
-    # test dataset
-    generate_kep_dataset(
-        num_instances=NUM_INSTANCES,
-        num_nodes=NUM_NODES,
-        num_edges=NUM_EDGES,
-        node_types=NODE_TYPES,
-        node_type_distribution=NODE_TYPE_DISTRIBUTION,
-        output_dir=KEP_TEST_DATASET_FOLDER_PATH,
-    )
+
     # train dataset
+    kep_train_dataset_dir = get_dataset_folder_path(dataset_name="KEP", step="train")
     generate_kep_dataset(
         num_instances=NUM_INSTANCES,
         num_nodes=NUM_NODES,
         num_edges=NUM_EDGES,
         node_types=NODE_TYPES,
         node_type_distribution=NODE_TYPE_DISTRIBUTION,
-        output_dir=KEP_TRAIN_DATASET_FOLDER_PATH,
+        output_dir=kep_train_dataset_dir,
+    )
+    # test dataset
+    kep_test_dataset_dir = get_dataset_folder_path(dataset_name="KEP", step="test")
+    generate_kep_dataset(
+        num_instances=NUM_INSTANCES,
+        num_nodes=NUM_NODES,
+        num_edges=NUM_EDGES,
+        node_types=NODE_TYPES,
+        node_type_distribution=NODE_TYPE_DISTRIBUTION,
+        output_dir=kep_test_dataset_dir,
     )
     # validation dataset
+    kep_val_dataset_dir = get_dataset_folder_path(dataset_name="KEP", step="val")
     generate_kep_dataset(
         num_instances=NUM_INSTANCES,
         num_nodes=NUM_NODES,
         num_edges=NUM_EDGES,
         node_types=NODE_TYPES,
         node_type_distribution=NODE_TYPE_DISTRIBUTION,
-        output_dir=KEP_VAL_DATASET_FOLDER_PATH,
+        output_dir=kep_val_dataset_dir,
     )
