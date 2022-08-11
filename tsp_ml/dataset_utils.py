@@ -50,3 +50,11 @@ def filter_tensors(data: Data, tensor_names: str) -> Data:
         if key not in tensor_names:
             del data[key]
     return data
+
+
+def print_dataset_information(dataset: Dataset) -> None:
+    dataset_size = len(dataset)
+    print(f"Dataset size: {dataset_size}")
+    print(f"Dataset total num_edges: {dataset.num_edges}")
+    avg_num_edges = int(dataset.num_edges) / int(dataset_size)
+    print(f"Mean num_edges per graph: {avg_num_edges}")

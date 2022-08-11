@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import sys
-from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
-from dataset_utils import get_dataset
+from dataset_utils import get_dataset, print_dataset_information
 from model_utils import load_model, set_torch_seed
 from paths import get_predictions_folder_path
+from predict import create_predictions_CSV, save_predictions_to_csv
 from torch_geometric.data import Dataset
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
@@ -17,47 +17,10 @@ DATASET_NAME = "KEP"
 TRAINED_MODEL_NAME = "2022_08_08_17h35_KEP_GCN"
 BATCH_SIZE = 10
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using {device}")
-
-
-def print_dataset_information(dataset: Dataset) -> None:
-    dataset_size = len(dataset)
-    print(f"Dataset size: {dataset_size}")
-    print(f"Dataset total num_edges: {dataset.num_edges}")
-    avg_num_edges = int(dataset.num_edges) / int(dataset_size)
-    print(f"Mean num_edges per graph: {avg_num_edges}")
-
-
-def create_predictions_CSV(
-    output_dir: str,
-) -> Tuple[bool, str]:
-    if output_dir is not None:
-        output_dir.mkdir(parents=True, exist_ok=True)
-        save_predictions = True
-        filepath = Path(output_dir) / "predictions.csv"
-        if filepath.exists():
-            replace_file = input(
-                f"File already exists: {filepath} ... Replace it? (Y to confirm): "
-            ).lower()
-            if replace_file == "y":
-                print(f"Deleting {filepath} ...")
-                filepath.unlink()
-                print(f"Will save predictions at {filepath}.")
-            else:
-                print("Predictions will not be saved.")
-                save_predictions = False
-        if save_predictions:
-            with open(filepath, "a") as file:
-                # create CSV file with header and 0 rows
-                csv_header = "id, predictions, truth\n"
-                file.write(csv_header)
-    return save_predictions, filepath
-
 
 def evaluate(
     model: torch.nn.Module,
-    dataset: torch.Dataset,
+    dataset: Dataset,
     batch_size: int,
     output_dir: Optional[str] = None,
 ) -> ModelPerformance:
@@ -67,35 +30,42 @@ def evaluate(
     set_torch_seed()
 
     # check if predictions file already exist
-    save_predictions, filepath = create_predictions_CSV(output_dir=output_dir)
+    save_predictions, filepath = create_predictions_CSV(
+        output_dir=output_dir, dataset_name=dataset.name
+    )
 
     model_performance = ModelPerformance()
     dataloader = DataLoader(
         dataset, shuffle=False, batch_size=batch_size, pin_memory=True, num_workers=4
     )
     model.eval()  # set the model to evaluation mode
+
     for i, batch in enumerate(tqdm(dataloader, desc="Evaluation", file=sys.stdout)):
         batch = batch.to(device)
-        label = batch.y
-        label = label.to(torch.float32)
+
+        if batch.y is not None:
+            label = batch.y
+            label = label.to(torch.float32)
+
+        # get predictions
         scores = model(data=batch)
-        # TODO evaluate KEP
         if dataset.dataset_name == "DTSP":
+            # graph+cost classification
             pred = scores.to(int)  # DTSP
-        elif dataset.dataset_name == "TSP":
-            pred = torch.argmax(scores, 1).to(int)  # TSP
+        elif dataset.dataset_name == "TSP" or "KEP":
+            # edge classification
+            pred = torch.argmax(scores, 1).to(int)
         model_performance.update(pred=pred, truth=batch.y)
+
         if save_predictions:
-            # save predictions
-            y_predictions = pred.detach().cpu().tolist()
-            y_truths = batch.y.detach().cpu().tolist()
+            # get instance IDs
             row, _ = batch.edge_index
             edge_batch = batch.batch[row]
             instance_ids = [batch.id[idx] for idx in edge_batch.tolist()]
-            with open(filepath, "a") as file:
-                for (id, pred, truth) in zip(instance_ids, y_predictions, y_truths):
-                    csv_row = f"{id},{int(pred)},{int(truth)}\n"
-                    file.write(csv_row)
+            # save predictions in a CSV
+            save_predictions_to_csv(
+                filepath=filepath, instance_ids=instance_ids, pred=pred, truth=batch.y
+            )
 
     print_dataset_information(dataset=dataset)
     model_performance.print()
