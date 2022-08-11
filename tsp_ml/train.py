@@ -78,7 +78,8 @@ def training_step(
         label = one_hot(batch.y).to(torch.float32)
         loss = loss_function(scores, label)
     elif dataset_name == "KEP":
-        loss = loss_function(scores, batch.edge_weights)  # KEP loss
+        # loss = loss_function(scores, batch.edge_weights)  # KEP loss
+        loss = loss_function(scores, batch.edge_weights, batch.edge_index)  # KEP loss
     # backpropagate
     loss.backward()
     optimizer.step()
@@ -97,7 +98,6 @@ def training_epoch(
 ) -> float:
     epoch_loss = AverageMeter()
     model.train()  # set the model to training mode
-    dataset_name = dataloader.dataset.dataset_name
     for _, batch in enumerate(tqdm(dataloader, desc="Training", file=sys.stdout)):
         epoch_loss = training_step(
             model=model,
@@ -106,7 +106,7 @@ def training_epoch(
             optimizer=optimizer,
             loss_function=loss_function,
             epoch_loss=epoch_loss,
-            dataset_name=dataset_name,
+            dataset_name=dataloader.dataset.dataset_name,
         )
     # TODO optionally save predictions
     return epoch_loss.average
@@ -125,6 +125,7 @@ def get_training_report(
     loss_params = {k: v.tolist() for k, v in loss_dict.items()}
     model_architecture_name = model.__class__.__name__
     training_report = {
+        "dataset_name": train_dataloader.dataset.dataset_name,
         "num_epochs": num_epochs,
         "model_architecture_name": model_architecture_name,
         "model_architecture": str(model),

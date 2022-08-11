@@ -106,6 +106,7 @@ class ModelPerformance:
             # return cls(TP= , )
 
     def print(self):
+        # Prints the report information in a "friendly and pretty" way
         print(f"TP, FP: {self.TP, self.FP}")
         print(f"TN, FN: {self.TN, self.FN}")
         print(f"Precision: {self.precision:.4f}")
