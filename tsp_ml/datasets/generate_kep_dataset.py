@@ -14,15 +14,15 @@ sys.path.insert(0, "/home/pimenta/tsp_ml/tsp_ml")
 from paths import get_dataset_folder_path
 
 ## script parameters
-NUM_INSTANCES = 100
-NUM_NODES = 100
-NUM_EDGES = 200
+NUM_INSTANCES = 2000
+NUM_NODES = 250
+NUM_EDGES = 5500
 NODE_TYPES = [
     "NDD",  # non-directed donors
     "PDP",  # patient-donor pair
     "P",  # pacient without a pair
 ]
-NODE_TYPE_DISTRIBUTION = [0.2, 0.4, 0.4]
+NODE_TYPE_DISTRIBUTION = [0.05, 0.9, 0.05]
 
 
 # TODO : create graphs with num_nodes
@@ -78,7 +78,7 @@ def generate_kep_dataset(
     num_nodes: Optional[int] = None,
     num_edges: Optional[int] = None,
 ):
-    for instance_id in range(num_instances):
+    for i in range(num_instances):
         kep_instance_nx_graph = generate_kep_instance(
             num_nodes=num_nodes,
             num_edges=num_edges,
@@ -87,17 +87,16 @@ def generate_kep_dataset(
         )
         # convert from nx.DiGraph to torch_geometric.data.Data
         kep_instance_pyg_graph = from_networkx(kep_instance_nx_graph)
-        # import pdb
-
-        # pdb.set_trace()
         # set instance ID
         instance_id = nx.weisfeiler_lehman_graph_hash(
             G=kep_instance_nx_graph, edge_attr="edge_weights"
         )
+        kep_instance_pyg_graph.id = instance_id
         # save KEP instance on output_dir
         filename = f"kep_instance_{instance_id}.pt"
         filepath = output_dir / filename
         torch.save(kep_instance_pyg_graph, filepath)
+        print(f"[{i+1}/{num_instances}] Saved {filepath}")
 
 
 if __name__ == "__main__":
