@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Tuple
+from typing import List, Tuple
 
 from datasets import DTSPDataset, KEPDataset, TSPDataset
 from paths import get_dataset_folder_path
@@ -43,6 +43,14 @@ def get_dataset(dataset_name: str, step: str) -> Dataset:
     return dataset
 
 
+def print_dataset_information(dataset: Dataset) -> None:
+    dataset_size = len(dataset)
+    print(f"Dataset size: {dataset_size}")
+    print(f"Dataset total num_edges: {dataset.num_edges}")
+    avg_num_edges = int(dataset.num_edges) / int(dataset_size)
+    print(f"Mean num_edges per graph: {avg_num_edges}")
+
+
 # TODO consider moving this function somewhere else
 def filter_tensors(data: Data, tensor_names: str) -> Data:
     # keep only the specified tensors (tensor_names) and delete the rest
@@ -52,9 +60,9 @@ def filter_tensors(data: Data, tensor_names: str) -> Data:
     return data
 
 
-def print_dataset_information(dataset: Dataset) -> None:
-    dataset_size = len(dataset)
-    print(f"Dataset size: {dataset_size}")
-    print(f"Dataset total num_edges: {dataset.num_edges}")
-    avg_num_edges = int(dataset.num_edges) / int(dataset_size)
-    print(f"Mean num_edges per graph: {avg_num_edges}")
+# TODO consider moving this function somewhere else
+def get_instance_ids(batch: Data) -> List[int]:
+    row, _ = batch.edge_index
+    edge_batch = batch.batch[row]
+    instance_ids = [batch.id[idx] for idx in edge_batch.tolist()]
+    return instance_ids

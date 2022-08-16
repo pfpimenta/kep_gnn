@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 # this script loads a model and a dataset, predicts, and saves predictions in a CSV
+import pathlib
 import sys
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from dataset_utils import get_dataset, print_dataset_information
@@ -15,46 +16,70 @@ from tqdm import tqdm
 # TODO refactor with evaluate.py (Don't Repeat Yourself principle)
 
 DATASET_NAME = "KEP"
-TRAINED_MODEL_NAME = "2022_08_10_22h49_KEP_GCN"
+TRAINED_MODEL_NAME = "2022_08_11_11h05_KEP_GCN"
 BATCH_SIZE = 10
 
 
-def create_predictions_CSV(
+def delete_predictions_CSV(filepath: pathlib.Path):
+    print(f"Deleting {filepath} ...")
+    filepath.unlink()
+
+
+def create_predictions_CSV(filepath: str, dataset_name: str):
+    with open(filepath, "a") as file:
+        # create CSV file with header and 0 rows
+        if dataset_name == "TSP" or dataset_name == "DTSP":
+            csv_header = "id, predictions, truth\n"
+        elif dataset_name == "KEP":
+            csv_header = "id, predictions\n"
+        file.write(csv_header)
+
+
+def initialize_predictions_CSV(
     output_dir: str,
-    trained_model_name: str,
     dataset_name: str,
+    overwrite_results: bool = True,
 ) -> Tuple[bool, str]:
-    if output_dir is not None:
+    # TODO save predicted scores
+    if output_dir is None:
+        raise ValueError("No output_dir was passed.")
+    # create output_dir if it does not exist yet
+    output_dir.mkdir(parents=True, exist_ok=True)
+    # check if CSV file already exist
+    filepath = Path(output_dir) / "predictions.csv"
+    if not filepath.exists():
         save_predictions = True
-        output_dir = Path(output_dir) / trained_model_name
-        output_dir.mkdir(parents=True, exist_ok=True)
-        filepath = Path(output_dir) / "predictions.csv"
-        if filepath.exists():
+    else:
+        if overwrite_results:
+            delete_predictions_CSV(filepath=filepath)
+            save_predictions = True
+        else:
+            # ask user if they want the file replaced
             replace_file = input(
                 f"File already exists: {filepath} ... Replace it? (Y to confirm): "
             ).lower()
             if replace_file == "y":
-                print(f"Deleting {filepath} ...")
-                filepath.unlink()
-                print(f"Will save predictions at {filepath}.")
+                delete_predictions_CSV(filepath=filepath)
+                save_predictions = True
             else:
                 print("Predictions will not be saved.")
                 save_predictions = False
-        if save_predictions:
-            with open(filepath, "a") as file:
-                # create CSV file with header and 0 rows
-                if dataset_name == "TSP" or dataset_name == "DTSP":
-                    csv_header = "id, predictions, truth\n"
-                elif dataset_name == "KEP":
-                    csv_header = "id, predictions\n"
-                file.write(csv_header)
+    # create CSV file with header
+    if save_predictions:
+        print(f"Will save predictions at {filepath}")
+        create_predictions_CSV(filepath=filepath, dataset_name=dataset_name)
+
     return save_predictions, filepath
 
 
 def save_predictions_to_csv(
-    instance_ids: List[str], pred: torch.Tensor, truth: torch.Tensor, filepath: str
+    instance_ids: List[str],
+    pred: torch.Tensor,
+    filepath: str,
+    truth: Optional[torch.Tensor] = None,
 ):
     """Saves the predictions given in a CSV file"""
+    # TODO save predicted scores
     y_predictions = pred.detach().cpu().tolist()
     if truth is not None:
         # with ground truth Y values
@@ -73,51 +98,70 @@ def save_predictions_to_csv(
 
 def predict(
     model: torch.nn.Module,
-    trained_model_name: str,
     dataset: Dataset,
     batch_size: int,
     output_dir: str,
+    save_as_pt: bool = False,
 ) -> None:
     """Uses the model to make predictions on the given dataset,
-    and then saves the predictions on 'output_dir'"""
+    and then saves the predictions on 'output_dir' in a CSV.
+    If 'save_as_pt' is True, TODO"""
 
     set_torch_seed()
 
     # check if predictions file already exist
-    save_predictions, filepath = create_predictions_CSV(
+    save_predictions, csv_filepath = initialize_predictions_CSV(
         output_dir=output_dir,
-        trained_model_name=trained_model_name,
         dataset_name=DATASET_NAME,
     )
     if save_predictions is False:
         return None
+    if save_as_pt:
+        print(f"Setting batch_size to 1 in order to save each predicted instance")
+        batch_size = 1
+        predicted_instances_dir = output_dir / "predicted_instances"
+        predicted_instances_dir.mkdir(parents=True, exist_ok=True)
 
     dataloader = DataLoader(
         dataset, shuffle=False, batch_size=batch_size, pin_memory=True, num_workers=4
     )
 
+    num_instances = len(dataset)
+
     model.eval()  # set the model to evaluation mode to freeze the weights
 
-    for i, batch in enumerate(tqdm(dataloader, desc="Evaluation", file=sys.stdout)):
+    for i, batch in enumerate(tqdm(dataloader, desc="Prediction", file=sys.stdout)):
         batch = batch.to(device)
         if batch.y is not None:
             label = batch.y
             label = label.to(torch.float32)
 
         scores = model(data=batch)
+
         if dataset.dataset_name == "DTSP":
             # graph+cost classification
             pred = scores.to(int)  # DTSP
         elif dataset.dataset_name == "TSP" or "KEP":
             # edge classification
             pred = torch.argmax(scores, 1).to(int)
+
         # get instance IDs
         row, _ = batch.edge_index
         edge_batch = batch.batch[row]
         instance_ids = [batch.id[idx] for idx in edge_batch.tolist()]
+
+        # save predicted instance in a .PT file
+        if save_as_pt:
+            graph = batch[0]
+            graph.scores = scores
+            graph.pred = pred
+            graph_filepath = predicted_instances_dir / (graph.id + "_pred.pt")
+            torch.save(graph, graph_filepath)
+            # print(f"[{i+1}/{num_instances}] Saved {graph_filepath}")
+
         # save predictions in a CSV
         save_predictions_to_csv(
-            filepath=filepath, instance_ids=instance_ids, pred=pred, truth=batch.y
+            filepath=csv_filepath, instance_ids=instance_ids, pred=pred, truth=batch.y
         )
 
 
@@ -126,47 +170,24 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using {device}")
 
-    # setup data
-    train_dataset = get_dataset(dataset_name=DATASET_NAME, step="train")
-    print_dataset_information(dataset=train_dataset)
-    test_dataset = get_dataset(dataset_name=DATASET_NAME, step="test")
-    print_dataset_information(dataset=test_dataset)
-    val_dataset = get_dataset(dataset_name=DATASET_NAME, step="val")
-    print_dataset_information(dataset=val_dataset)
-
     # load model
     model = load_model(trained_model_name=TRAINED_MODEL_NAME)
 
-    print("\n\nPredicting on the train dataset")
-    predictions_dir = get_predictions_folder_path(
-        dataset_name=DATASET_NAME, step="train"
-    )
-    predict(
-        model=model,
-        trained_model_name=TRAINED_MODEL_NAME,
-        dataset=train_dataset,
-        output_dir=predictions_dir,
-        batch_size=BATCH_SIZE,
-    )
+    for step in ["train", "test", "val"]:
+        # setup data
+        dataset = get_dataset(dataset_name=DATASET_NAME, step=step)
+        print_dataset_information(dataset=dataset)
 
-    print("\n\nPredicting on the test dataset")
-    predictions_dir = get_predictions_folder_path(
-        dataset_name=DATASET_NAME, step="test"
-    )
-    predict(
-        model=model,
-        trained_model_name=TRAINED_MODEL_NAME,
-        dataset=test_dataset,
-        output_dir=predictions_dir,
-        batch_size=BATCH_SIZE,
-    )
-
-    print("\n\nPredicting on the validation dataset")
-    predictions_dir = get_predictions_folder_path(dataset_name=DATASET_NAME, step="val")
-    predict(
-        model=model,
-        trained_model_name=TRAINED_MODEL_NAME,
-        dataset=val_dataset,
-        output_dir=predictions_dir,
-        batch_size=BATCH_SIZE,
-    )
+        print(f"\n\nPredicting on the {step} dataset")
+        predictions_dir = get_predictions_folder_path(
+            dataset_name=DATASET_NAME,
+            step=step,
+            trained_model_name=TRAINED_MODEL_NAME,
+        )
+        predict(
+            model=model,
+            dataset=dataset,
+            output_dir=predictions_dir,
+            batch_size=BATCH_SIZE,
+            save_as_pt=True,
+        )
