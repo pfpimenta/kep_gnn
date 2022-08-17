@@ -196,7 +196,7 @@ def get_loss_function(dataset_name: str, train_dataloader: Optional[DataLoader] 
         loss_function = torch.nn.CrossEntropyLoss(weight=torch.tensor(class_weights))
     elif dataset_name == "DTSP":
         loss_function = torch.nn.L1Loss()
-    elif dataset_name == "KEP":
+    elif dataset_name == "KEP" or dataset_name == "KEPCE":
         loss_function = KEPLoss()
     else:
         raise ValueError(f"No dataset named '{dataset_name}' found.")

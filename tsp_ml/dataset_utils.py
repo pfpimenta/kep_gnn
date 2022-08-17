@@ -36,7 +36,7 @@ def get_dataset(dataset_name: str, step: str) -> Dataset:
         dataset = TSPDataset(dataset_folderpath=folder_path)
     elif dataset_name == "DTSP":
         dataset = DTSPDataset(dataset_folderpath=folder_path)
-    elif dataset_name == "KEP":
+    elif dataset_name == "KEP" or dataset_name == "KEPCE":
         dataset = KEPDataset(dataset_folderpath=folder_path)
     else:
         raise ValueError(f"No dataset named '{dataset_name}' found.")

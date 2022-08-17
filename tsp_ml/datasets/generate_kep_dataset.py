@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# script to randomly generate 1 instance of the Kidney Exchange Problem (KEP)
-# and their optimal solution routes
+# script to randomly generate instances of the Kidney Exchange Problem (KEP)
+# TODO: generate their optimal solution routes
 import random
 import sys
 from typing import List, Optional
@@ -25,17 +25,17 @@ NODE_TYPES = [
 NODE_TYPE_DISTRIBUTION = [0.05, 0.9, 0.05]
 
 
-# TODO : create graphs with num_nodes
-# mirroring data described at Tables S3 and S4
-
-
 def generate_kep_instance(
     num_nodes: int,
     num_edges: int,
     node_types: List[str],
     node_type_distribution: List[float],
 ) -> nx.DiGraph:
-    """TODO description"""
+    """Generates one instance of the Kidney-Exchange Problem:
+    a directed graph, where nodes represent patients, donnors, or patient-donnor-pairs,
+    and edges represent biological compatibility for kidney donnation.
+    The choice of which node is connected to which node is made randomly.
+    """
     node_ids = range(num_nodes)
     kep_instance = nx.DiGraph()
 
@@ -78,6 +78,8 @@ def generate_kep_dataset(
     num_nodes: Optional[int] = None,
     num_edges: Optional[int] = None,
 ):
+    """Generates 'num_instances' instances of the Kidney-Exchange Problem
+    and saves them in .PT files inside 'output_dir'."""
     for i in range(num_instances):
         kep_instance_nx_graph = generate_kep_instance(
             num_nodes=num_nodes,
@@ -100,34 +102,14 @@ def generate_kep_dataset(
 
 
 if __name__ == "__main__":
-
-    # train dataset
-    kep_train_dataset_dir = get_dataset_folder_path(dataset_name="KEP", step="train")
-    generate_kep_dataset(
-        num_instances=NUM_INSTANCES,
-        num_nodes=NUM_NODES,
-        num_edges=NUM_EDGES,
-        node_types=NODE_TYPES,
-        node_type_distribution=NODE_TYPE_DISTRIBUTION,
-        output_dir=kep_train_dataset_dir,
-    )
-    # test dataset
-    kep_test_dataset_dir = get_dataset_folder_path(dataset_name="KEP", step="test")
-    generate_kep_dataset(
-        num_instances=NUM_INSTANCES,
-        num_nodes=NUM_NODES,
-        num_edges=NUM_EDGES,
-        node_types=NODE_TYPES,
-        node_type_distribution=NODE_TYPE_DISTRIBUTION,
-        output_dir=kep_test_dataset_dir,
-    )
-    # validation dataset
-    kep_val_dataset_dir = get_dataset_folder_path(dataset_name="KEP", step="val")
-    generate_kep_dataset(
-        num_instances=NUM_INSTANCES,
-        num_nodes=NUM_NODES,
-        num_edges=NUM_EDGES,
-        node_types=NODE_TYPES,
-        node_type_distribution=NODE_TYPE_DISTRIBUTION,
-        output_dir=kep_val_dataset_dir,
-    )
+    # generate and save train, test, and val KEP datasets
+    for step in ["train", "test", "val"]:
+        kep_dataset_dir = get_dataset_folder_path(dataset_name="KEP", step=step)
+        generate_kep_dataset(
+            num_instances=NUM_INSTANCES,
+            num_nodes=NUM_NODES,
+            num_edges=NUM_EDGES,
+            node_types=NODE_TYPES,
+            node_type_distribution=NODE_TYPE_DISTRIBUTION,
+            output_dir=kep_dataset_dir,
+        )

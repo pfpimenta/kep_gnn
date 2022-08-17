@@ -63,7 +63,7 @@ def load_model(
         )
         with open(training_report_filepath, "r") as file:
             training_report = json.load(file)
-            print(training_report)
+            print(f"Training report:\n{training_report}")
     return model
 
 

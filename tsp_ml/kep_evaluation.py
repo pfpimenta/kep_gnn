@@ -10,7 +10,8 @@ from paths import get_eval_results_folder_path, get_predictions_folder_path
 from torch import Tensor
 from tqdm import tqdm
 
-TRAINED_MODEL_NAME = "2022_08_11_11h05_KEP_GCN"
+TRAINED_MODEL_NAME = "2022_08_17_17h30_KEPCE_GCN"
+DATASET_NAME = "KEPCE"
 # weather to redo evaluation and save it overwriting the pre-existing CSV:
 OVERWRITE_RESULTS = True
 
@@ -137,6 +138,7 @@ def kep_evaluation(
     step: str,
     trained_model_name: str,
     print_overview: bool = True,
+    dataset_name: str = "KEP",
 ) -> None:
     """Evaluates the predictions made by a model trained for the
     Kidney-Exchange Problem (KEP) on the test, train or val dataset
@@ -147,7 +149,7 @@ def kep_evaluation(
 
     print(f"\n\nEvaluating the model predictions on the {step} KEP dataset")
     predictions_dir = get_predictions_folder_path(
-        dataset_name="KEP",
+        dataset_name=dataset_name,
         step=step,
         trained_model_name=trained_model_name,
     )
@@ -155,7 +157,7 @@ def kep_evaluation(
 
     # get output CSV filepath
     output_dir = get_eval_results_folder_path(
-        dataset_name="KEP",
+        dataset_name=dataset_name,
         step=step,
         trained_model_name=trained_model_name,
     )
@@ -173,5 +175,11 @@ def kep_evaluation(
 
 if __name__ == "__main__":
     # compute and save evaluation for predictions on the train, test and val datasets
-    for step in ["train", "test", "val"]:
-        kep_evaluation(step=step, trained_model_name=TRAINED_MODEL_NAME)
+    # steps_to_predict = ["train", "test", "val"]
+    steps_to_predict = ["val"]
+    for step in steps_to_predict:
+        kep_evaluation(
+            step=step,
+            trained_model_name=TRAINED_MODEL_NAME,
+            dataset_name=DATASET_NAME,
+        )

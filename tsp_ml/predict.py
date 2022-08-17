@@ -15,8 +15,8 @@ from tqdm import tqdm
 
 # TODO refactor with evaluate.py (Don't Repeat Yourself principle)
 
-DATASET_NAME = "KEP"
-TRAINED_MODEL_NAME = "2022_08_11_11h05_KEP_GCN"
+DATASET_NAME = "KEPCE"
+TRAINED_MODEL_NAME = "2022_08_17_17h30_KEPCE_GCN"
 BATCH_SIZE = 10
 
 
@@ -30,8 +30,10 @@ def create_predictions_CSV(filepath: str, dataset_name: str):
         # create CSV file with header and 0 rows
         if dataset_name == "TSP" or dataset_name == "DTSP":
             csv_header = "id, predictions, truth\n"
-        elif dataset_name == "KEP":
+        elif dataset_name == "KEP" or dataset_name == "KEPCE":
             csv_header = "id, predictions\n"
+        else:
+            raise ValueError(f"No dataset named '{dataset_name}' found.")
         file.write(csv_header)
 
 
@@ -40,7 +42,6 @@ def initialize_predictions_CSV(
     dataset_name: str,
     overwrite_results: bool = True,
 ) -> Tuple[bool, str]:
-    # TODO save predicted scores
     if output_dir is None:
         raise ValueError("No output_dir was passed.")
     # create output_dir if it does not exist yet
@@ -79,7 +80,6 @@ def save_predictions_to_csv(
     truth: Optional[torch.Tensor] = None,
 ):
     """Saves the predictions given in a CSV file"""
-    # TODO save predicted scores
     y_predictions = pred.detach().cpu().tolist()
     if truth is not None:
         # with ground truth Y values
@@ -101,26 +101,34 @@ def predict(
     dataset: Dataset,
     batch_size: int,
     output_dir: str,
-    save_as_pt: bool = False,
+    save_as_pt: bool = True,
+    save_csv: bool = False,
 ) -> None:
     """Uses the model to make predictions on the given dataset,
     and then saves the predictions on 'output_dir' in a CSV.
-    If 'save_as_pt' is True, TODO"""
+    If 'save_as_pt' is True, each instance is predicted separately
+    and each prediction is saved with the rest of the instance data in
+    a .PT file."""
 
     set_torch_seed()
 
-    # check if predictions file already exist
-    save_predictions, csv_filepath = initialize_predictions_CSV(
-        output_dir=output_dir,
-        dataset_name=DATASET_NAME,
-    )
-    if save_predictions is False:
-        return None
+    # check if predictions CSV file already exist
+    if save_csv:
+        save_csv, csv_filepath = initialize_predictions_CSV(
+            output_dir=output_dir,
+            dataset_name=DATASET_NAME,
+        )
     if save_as_pt:
-        print(f"Setting batch_size to 1 in order to save each predicted instance")
+        print("Setting batch_size to 1 in order to save each predicted instance...")
         batch_size = 1
         predicted_instances_dir = output_dir / "predicted_instances"
         predicted_instances_dir.mkdir(parents=True, exist_ok=True)
+    if save_csv is False and save_as_pt is False:
+        print(
+            "Since predictions would not be saved,"
+            " the prediction will be skipped altogheter."
+        )
+        return None
 
     dataloader = DataLoader(
         dataset, shuffle=False, batch_size=batch_size, pin_memory=True, num_workers=4
@@ -160,9 +168,13 @@ def predict(
             # print(f"[{i+1}/{num_instances}] Saved {graph_filepath}")
 
         # save predictions in a CSV
-        save_predictions_to_csv(
-            filepath=csv_filepath, instance_ids=instance_ids, pred=pred, truth=batch.y
-        )
+        if save_csv:
+            save_predictions_to_csv(
+                filepath=csv_filepath,
+                instance_ids=instance_ids,
+                pred=pred,
+                truth=batch.y,
+            )
 
 
 if __name__ == "__main__":
@@ -173,7 +185,9 @@ if __name__ == "__main__":
     # load model
     model = load_model(trained_model_name=TRAINED_MODEL_NAME)
 
-    for step in ["train", "test", "val"]:
+    # steps_to_predict = ["train", "test", "val"]
+    steps_to_predict = ["val"]
+    for step in steps_to_predict:
         # setup data
         dataset = get_dataset(dataset_name=DATASET_NAME, step=step)
         print_dataset_information(dataset=dataset)
