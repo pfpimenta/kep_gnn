@@ -30,6 +30,7 @@ def generate_kep_instance(
     num_edges: int,
     node_types: List[str],
     node_type_distribution: List[float],
+    add_node_features: bool = False,
 ) -> nx.DiGraph:
     """Generates one instance of the Kidney-Exchange Problem:
     a directed graph, where nodes represent patients, donnors, or patient-donnor-pairs,
@@ -46,7 +47,24 @@ def generate_kep_instance(
         )[0]
         # TODO weight should be in node ???
         # NAO (!?) ... no artigo ta nas arestas msm...
-        kep_instance.add_node(node, type=node_type)
+        if add_node_features:
+            # num_edges_in and num_edges_out will be added later
+            num_edges_in = 0
+            num_edges_out = 0
+            is_NDD = 1 if node_type == "NDD" else 0
+            is_PDP = 1 if node_type == "PDP" else 0
+            is_P = 1 if node_type == "P" else 0
+            kep_instance.add_node(
+                node,
+                type=node_type,
+                num_edges_in=num_edges_in,
+                num_edges_out=num_edges_out,
+                is_NDD=is_NDD,
+                is_PDP=is_PDP,
+                is_P=is_P,
+            )
+        else:
+            kep_instance.add_node(node, type=node_type)
 
     # add edges (no features, directed)
     # TODO refactor
@@ -66,6 +84,10 @@ def generate_kep_instance(
         # add some random weight to the edge
         edge_weight = random.random()
         kep_instance.add_edge(src_node_id, dst_node_id, edge_weights=edge_weight)
+        if add_node_features:
+            # add num_edges_in and num_edges_out node features
+            kep_instance.nodes[src_node_id]["num_edges_out"] += 1
+            kep_instance.nodes[dst_node_id]["num_edges_in"] += 1
 
     return kep_instance
 

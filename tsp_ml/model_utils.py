@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 import torch
 from models import AVAILABLE_MODELS
 from paths import TRAINED_MODELS_FOLDER_PATH
+from torch_geometric.data import Dataset
 
 
 def save_dict_to_json(dict: Dict[str, Any], json_filepath: str):
@@ -79,13 +80,19 @@ def get_trained_model_name(
     return model_name
 
 
-def get_model(model_name: str = "TSP_GGCN") -> torch.nn.Module:
+def get_model(
+    model_name: str = "TSP_GGCN",
+    dataset: Optional[Dataset] = None,
+) -> torch.nn.Module:
     # returns an initialized model object
     try:
         Model = AVAILABLE_MODELS[model_name]
     except KeyError:
         raise ValueError(f"No model named '{model_name}' found.")
-    model = Model()
+    if model_name == "KEPCE_GAT_PNA":
+        model = Model(pna_deg=dataset.in_degree_histogram)
+    else:
+        model = Model()
     return model
 
 

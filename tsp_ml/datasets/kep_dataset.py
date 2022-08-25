@@ -5,6 +5,7 @@ from typing import List, Tuple
 
 import torch
 from torch_geometric.data import Data, Dataset
+from torch_geometric.utils import degree
 
 
 class KEPDataset(Dataset):
@@ -12,7 +13,8 @@ class KEPDataset(Dataset):
         super(KEPDataset, self).__init__(transform, pre_transform)
         self.dataset_folderpath = dataset_folderpath
         self.__num_edges = None
-        self.__class_weights = None
+        self.__maximum_in_degree = None
+        self.__in_degree_histogram = None
 
     @property
     def num_classes(self) -> int:
@@ -27,34 +29,21 @@ class KEPDataset(Dataset):
         """Total number of edges in all graphs of dataset"""
         if self.__num_edges is None:
             self.__num_edges = 0
-            for i in range(self.len()):
-                filepath = Path(self.dataset_folderpath) / self.processed_file_names[i]
-                data = torch.load(filepath)
+            for data in self:
                 self.__num_edges += data.num_edges
         return self.__num_edges
 
     @property
     def get_class_weights(self) -> Tuple[float, float]:
-        """calculates class weights to adjust the loss function
-        based on the class distribution of the given dataset
+        """Class weights to adjust the loss function
+        based on the class distribution of the given dataset.
+        WARNING: as there is no ground truth labels, it is not possible
+        to compute the class weights.
         """
-        if self.__class_weights is None:
-            self.__class_weights = (0.5, 0.5)
-            # TODO calculate class weights (for that we first need the Y)
-            # class_0_count = 0
-            # class_1_count = 0
-            # for batch in self:
-            #     batch_class_0_count = (batch.y == 0).sum()
-            #     class_0_count += batch_class_0_count
-            #     class_1_count += batch.num_edges - batch_class_0_count
-            # total_num_edges = class_0_count + class_1_count
-            # class_0_weight = 1 / (class_0_count / total_num_edges)
-            # class_1_weight = 1 / (class_1_count / total_num_edges)
-            # # normalize weights
-            # class_0_weight = class_0_weight / (class_0_weight + class_1_weight)
-            # class_1_weight = class_1_weight / (class_0_weight + class_1_weight)
-            # self.__class_weights = (class_0_weight, class_1_weight)
-        return self.__class_weights
+        raise ValueError(
+            "As there is no ground truth labels, it is not possible"
+            " to compute the class weights."
+        )
 
     @property
     def processed_file_names(self) -> List[str]:
@@ -72,3 +61,32 @@ class KEPDataset(Dataset):
     @property
     def dataset_name(self) -> str:
         return "KEP"
+
+    @property
+    def maximum_in_degree(self) -> int:
+        """Maximum in-degree of all nodes in the dataset"""
+        print("Computing maximum in-degree of dataset...")
+        if self.__maximum_in_degree is None:
+            self.__maximum_in_degree = -1
+            for data in self:
+                d = degree(
+                    data.edge_index[1], num_nodes=data.num_nodes, dtype=torch.long
+                )
+                self.__maximum_in_degree = max(self.__maximum_in_degree, int(d.max()))
+            print(f"Maximum in-degree of dataset: {self.__maximum_in_degree}")
+        return self.__maximum_in_degree
+
+    @property
+    def in_degree_histogram(self) -> torch.Tensor:
+        """Histogram of the quantity of in-degree values of the dataset nodes.
+        This tensor is used by th PNA Convolution."""
+        print("Computing in-degree histogram of dataset...")
+        if self.__in_degree_histogram is None:
+            deg = torch.zeros(self.maximum_in_degree + 1, dtype=torch.long)
+            for data in self:
+                d = degree(
+                    data.edge_index[1], num_nodes=data.num_nodes, dtype=torch.long
+                )
+                deg += torch.bincount(d, minlength=deg.numel())
+            self.__in_degree_histogram = deg
+        return self.__in_degree_histogram

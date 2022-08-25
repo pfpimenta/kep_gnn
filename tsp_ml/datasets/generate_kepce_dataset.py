@@ -15,9 +15,9 @@ from datasets.generate_kep_dataset import generate_kep_instance
 from paths import get_dataset_folder_path
 
 ## script parameters
-NUM_INSTANCES = 1
-NUM_NODES = 10
-NUM_EDGES = 10
+NUM_INSTANCES = 5000
+NUM_NODES = 15
+NUM_EDGES = 45
 NODE_TYPES = [
     "NDD",  # non-directed donors
     "PDP",  # patient-donor pair
@@ -31,14 +31,16 @@ def generate_kepce_instance(
     num_edges: int,
     node_types: List[str],
     node_type_distribution: List[float],
+    add_node_features: bool = True,
 ) -> nx.DiGraph:
     kep_instance = generate_kep_instance(
         num_nodes=num_nodes,
         num_edges=num_edges,
         node_types=node_types,
         node_type_distribution=node_type_distribution,
+        add_node_features=add_node_features,
     )
-    # copy graph without the nodes
+    # copy graph without the edges
     kepce_instance = nx.create_empty_copy(kep_instance)
     for kep_edge in kep_instance.edges(data=True):
         src, dst, attr = kep_edge
@@ -78,12 +80,25 @@ def generate_kepce_dataset(
             node_type_distribution=node_type_distribution,
         )
         # convert from nx.DiGraph to torch_geometric.data.Data
-        kep_instance_pyg_graph = from_networkx(kepce_instance_nx_graph)
+        node_feature_names = [
+            "num_edges_in",
+            "num_edges_out",
+            "is_NDD",
+            "is_PDP",
+            "is_P",
+        ]
+        kep_instance_pyg_graph = from_networkx(
+            G=kepce_instance_nx_graph,
+            group_node_attrs=node_feature_names,
+        )
         # set instance ID
         instance_id = nx.weisfeiler_lehman_graph_hash(
             G=kepce_instance_nx_graph, edge_attr="edge_weights"
         )
         kep_instance_pyg_graph.id = instance_id
+        # import pdb
+
+        # pdb.set_trace()
         # save KEPCE instance on output_dir
         filename = f"kepce_instance_{instance_id}.pt"
         filepath = output_dir / filename

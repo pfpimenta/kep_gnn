@@ -109,6 +109,11 @@ def training_epoch(
             dataset_name=dataloader.dataset.dataset_name,
         )
     # TODO optionally save predictions
+    print(
+        f"current training loss: {epoch_loss.average}"
+        f" (total: {epoch_loss.sum} over {epoch_loss.count} predictions,"
+        f" {len(dataloader.dataset)} graphs."
+    )
     return epoch_loss.average
 
 
@@ -168,7 +173,6 @@ def train_model(
             optimizer=optimizer,
             loss_function=loss_function,
         )
-        print(f"current training loss: {train_loss}")
         if validation_dataloader is not None and ep % 5 == 0:
             validation_loss = validation_epoch(
                 model=model,
@@ -222,7 +226,10 @@ def train(
         val_dataloader = None
 
     # initialize model, optimizer, and loss function
-    model = get_model(model_name=model_name)
+    model = get_model(
+        model_name=model_name,
+        dataset=train_dataloader.dataset,
+    )
     adam_optimizer = torch.optim.Adam(
         model.parameters(), lr=learning_rate, weight_decay=5e-4
     )
