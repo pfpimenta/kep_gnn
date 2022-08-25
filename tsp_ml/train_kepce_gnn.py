@@ -3,9 +3,9 @@ import torch
 from train import DATASET_NAME, train
 
 BATCH_SIZE = 10
-NUM_EPOCHS = 20
-LEARNING_RATE = 0.001
-MODEL_NAME = "KEPCE_GCN"
+NUM_EPOCHS = 25
+LEARNING_RATE = 0.1
+MODEL_NAME = "KEPCE_GAT_PNA"
 DATASET_NAME = "KEPCE"
 
 # TODO save training params with model
