@@ -52,9 +52,10 @@ def load_model(
     trained_model_name: str,
     device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
     print_training_report: bool = True,
+    dataset: Optional[Dataset] = None,
 ) -> torch.nn.Module:
     model_name = trained_model_name[17:]
-    model = get_model(model_name=model_name).to(device)
+    model = get_model(model_name=model_name, dataset=dataset).to(device)
     model_filepath = TRAINED_MODELS_FOLDER_PATH / f"{trained_model_name}/model.pt"
     print(f"...Loading model from file {model_filepath}")
     model.load_state_dict(torch.load(model_filepath, map_location=device))
