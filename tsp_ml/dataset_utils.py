@@ -38,6 +38,7 @@ def get_dataset(dataset_name: str, step: str) -> Dataset:
         dataset = DTSPDataset(dataset_folderpath=folder_path)
     elif dataset_name == "KEP" or dataset_name == "KEPCE":
         dataset = KEPDataset(dataset_folderpath=folder_path)
+        dataset.save_properties()
     else:
         raise ValueError(f"No dataset named '{dataset_name}' found.")
     return dataset

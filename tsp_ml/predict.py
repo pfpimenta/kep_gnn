@@ -16,8 +16,8 @@ from tqdm import tqdm
 # TODO refactor with evaluate.py (Don't Repeat Yourself principle)
 
 DATASET_NAME = "KEPCE"
-TRAINED_MODEL_NAME = "2022_08_17_17h30_KEPCE_GCN"
-BATCH_SIZE = 10
+TRAINED_MODEL_NAME = "2022_08_30_17h04_KEPCE_GAT_PNA"
+BATCH_SIZE = 1
 
 
 def delete_predictions_CSV(filepath: pathlib.Path):
@@ -182,15 +182,16 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using {device}")
 
-    # load model
-    model = load_model(trained_model_name=TRAINED_MODEL_NAME)
-
     # steps_to_predict = ["train", "test", "val"]
-    steps_to_predict = ["val"]
+    steps_to_predict = ["test"]
     for step in steps_to_predict:
         # setup data
         dataset = get_dataset(dataset_name=DATASET_NAME, step=step)
         print_dataset_information(dataset=dataset)
+
+        # load model
+        # TODO refactor to load/save train dataset histogram
+        model = load_model(trained_model_name=TRAINED_MODEL_NAME, dataset=dataset)
 
         print(f"\n\nPredicting on the {step} dataset")
         predictions_dir = get_predictions_folder_path(
