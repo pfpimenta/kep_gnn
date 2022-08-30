@@ -109,10 +109,13 @@ def training_epoch(
             dataset_name=dataloader.dataset.dataset_name,
         )
     # TODO optionally save predictions
+    num_batches = int(len(dataloader.dataset) / dataloader.batch_size)
+    avg_loss_per_batch = epoch_loss.sum / num_batches
     print(
         f"current training loss: {epoch_loss.average}"
         f" (total: {epoch_loss.sum} over {epoch_loss.count} predictions,"
-        f" {len(dataloader.dataset)} graphs."
+        f" {len(dataloader.dataset)} graphs)."
+        f" Average loss per batch: {avg_loss_per_batch}"
     )
     return epoch_loss.average
 
