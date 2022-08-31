@@ -79,7 +79,12 @@ def training_step(
         loss = loss_function(scores, label)
     elif dataset_name == "KEP":
         # loss = loss_function(scores, batch.edge_weights)  # KEP loss
-        loss = loss_function(scores, batch.edge_weights, batch.edge_index)  # KEP loss
+        loss = loss_function(
+            scores,
+            batch.edge_weights,
+            batch.edge_index,
+            batch.counter_edge,
+        )  # KEP loss
     # backpropagate
     loss.backward()
     optimizer.step()
@@ -117,6 +122,7 @@ def training_epoch(
         f" {len(dataloader.dataset)} graphs)."
         f" Average loss per batch: {avg_loss_per_batch}"
     )
+    # TODO predict 3 random instances, print prediction info, save plot
     return epoch_loss.average
 
 
