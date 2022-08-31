@@ -58,7 +58,8 @@ class KEPDataset(Dataset):
     def processed_file_names(self) -> List[str]:
         processed_filenames = listdir(self.dataset_folderpath)
         # filter out JSON file
-        processed_filenames.remove(DATASET_PROPERTIES_FILENAME)
+        if DATASET_PROPERTIES_FILENAME in processed_filenames:
+            processed_filenames.remove(DATASET_PROPERTIES_FILENAME)
         return processed_filenames
 
     def len(self) -> int:
@@ -82,7 +83,7 @@ class KEPDataset(Dataset):
         in the same folder as the dataset instances (self.dataset_folderpath)"""
         dataset_properties = {
             "maximum_in_degree": self.maximum_in_degree,
-            # "in_degree_histogram": self.in_degree_histogram, # TODO
+            "in_degree_histogram": self.in_degree_histogram.tolist(),
             "num_edges": self.num_edges,
         }
         with open(self.properties_json_filepath, "w", encoding="utf-8") as f:
@@ -94,7 +95,9 @@ class KEPDataset(Dataset):
             dataset_properties = json.load(json_file)
         self.__num_edges = dataset_properties["num_edges"]
         self.__maximum_in_degree = dataset_properties["maximum_in_degree"]
-        # self.__in_degree_histogram = dataset_properties["in_degree_histogram"] # TODO
+        self.__in_degree_histogram = torch.Tensor(
+            dataset_properties["in_degree_histogram"]
+        ).to(int)
         print(f"Loaded properties: {dataset_properties}")
 
     @property
