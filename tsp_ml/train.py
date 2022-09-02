@@ -2,13 +2,16 @@
 # This script contains functions for training a model
 import sys
 import time
+from random import randint
 from typing import Optional
 
 import torch
 from average_meter import AverageMeter
 from dataset_utils import get_dataloaders
+from kep_evaluation import evaluate_kep_instance_prediction
 from kep_loss import KEPLoss
 from model_utils import get_model, save_model, set_torch_seed
+from plot_kep import generate_kep_plot
 from torch.nn.functional import one_hot
 from torch_geometric.data.batch import Batch
 from torch_geometric.loader import DataLoader
@@ -19,6 +22,7 @@ NUM_EPOCHS = 50
 LEARNING_RATE = 0.005
 MODEL_NAME = "TSP_GGCN_large"
 DATASET_NAME = "TSP"
+MINOR_EVAL = True  # set to True to print extra eval information during training
 
 
 def validation_step(
@@ -56,7 +60,6 @@ def validation_epoch(
             loss_function=loss_function,
             epoch_loss=epoch_loss,
         )
-    # TODO optionally save predictions
     return epoch_loss.average
 
 
@@ -94,16 +97,47 @@ def training_step(
     return epoch_loss
 
 
+def minor_evaluation(
+    model: torch.nn.Module,
+    dataloader: DataLoader,
+):
+    print("\n\nMinor evaluation: predicting on 3 random instances...")
+    # predict 3 random instances
+    num_instances = len(dataloader.dataset)
+    num_random_instances = 3
+    folderpath = "/home/pimenta/tsp_ml/results"  # TODO change it
+    for i in range(num_random_instances):
+        # randomly choose an instance
+        instance_index = randint(0, num_instances - 1)
+        instance = dataloader.dataset[instance_index]
+
+        # predict
+        instance.scores = model(instance)
+        instance.pred = torch.argmax(instance.scores, 1).to(int)
+
+        # print prediction info
+        prediction_info = evaluate_kep_instance_prediction(
+            instance_id=instance.id,
+            pred=instance.pred,
+            edge_index=instance.edge_index,
+            edge_weights=instance.edge_weights,
+        )
+        print(f"\nPrediction info: {prediction_info}")
+
+        generate_kep_plot(predicted_instance=instance, folderpath=folderpath)
+
+
 def training_epoch(
     model: torch.nn.Module,
     device: torch.device,
     dataloader: DataLoader,
     optimizer: torch.optim.Optimizer,
     loss_function: torch.nn.modules.loss._Loss,
+    minor_eval: bool = False,
 ) -> float:
     epoch_loss = AverageMeter()
     model.train()  # set the model to training mode
-    for _, batch in enumerate(tqdm(dataloader, desc="Training", file=sys.stdout)):
+    for i, batch in enumerate(tqdm(dataloader, desc="Training", file=sys.stdout)):
         epoch_loss = training_step(
             model=model,
             device=device,
@@ -113,7 +147,9 @@ def training_epoch(
             epoch_loss=epoch_loss,
             dataset_name=dataloader.dataset.dataset_name,
         )
-    # TODO optionally save predictions
+        if i == 5 and minor_eval:
+            minor_evaluation(model=model, dataloader=dataloader)
+
     num_batches = int(len(dataloader.dataset) / dataloader.batch_size)
     avg_loss_per_batch = epoch_loss.sum / num_batches
     print(
@@ -122,7 +158,8 @@ def training_epoch(
         f" {len(dataloader.dataset)} graphs)."
         f" Average loss per batch: {avg_loss_per_batch}"
     )
-    # TODO predict 3 random instances, print prediction info, save plot
+    if minor_eval:
+        minor_evaluation(model=model, dataloader=dataloader)
     return epoch_loss.average
 
 
@@ -130,7 +167,7 @@ def get_training_report(
     num_epochs: int,
     model: torch.nn.Module,
     device: torch.device,
-    train_dataloader: DataLoader,  # TODO remove?
+    train_dataloader: DataLoader,
     optimizer: torch.optim.Optimizer,
     loss_function: torch.nn.modules.loss._Loss,
 ):
@@ -160,6 +197,7 @@ def train_model(
     optimizer: torch.optim.Optimizer,
     loss_function: torch.nn.modules.loss._Loss,
     validation_dataloader: Optional[DataLoader] = None,
+    minor_eval: bool = False,
 ) -> torch.nn.Module:
     # TODO description
     print("\nTraining..")
@@ -181,6 +219,7 @@ def train_model(
             dataloader=train_dataloader,
             optimizer=optimizer,
             loss_function=loss_function,
+            minor_eval=minor_eval,
         )
         if validation_dataloader is not None and ep % 5 == 0:
             validation_loss = validation_epoch(
@@ -224,6 +263,7 @@ def train(
     num_epochs: int = 10,
     learning_rate: float = 0.01,
     use_validation: bool = True,
+    minor_eval: bool = False,
 ):
     set_torch_seed()
 
@@ -255,6 +295,7 @@ def train(
         validation_dataloader=val_dataloader,
         optimizer=adam_optimizer,
         loss_function=loss_function,
+        minor_eval=minor_eval,
     )
 
     # save model
@@ -266,4 +307,9 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using {device}")
 
-    train(device=device, model_name=MODEL_NAME, dataset_name=DATASET_NAME)
+    train(
+        device=device,
+        model_name=MODEL_NAME,
+        dataset_name=DATASET_NAME,
+        minor_eval=MINOR_EVAL,
+    )
