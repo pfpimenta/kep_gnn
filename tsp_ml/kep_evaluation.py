@@ -68,9 +68,9 @@ def evaluate_kep_instance_prediction(
         "num_valid_edges_dst": int(num_valid_edges["dst"]),
         "num_invalid_edges_dst": int(num_invalid_edges["dst"]),
         "valid_edges_percentage_dst": float(valid_edges_percentage["dst"]),
-        "total_weight_sum": int(total_weight_sum),
-        "solution_weight_sum": int(solution_weight_sum),
-        "not_solution_weight_sum": int(not_solution_weight_sum),
+        "total_weight_sum": float(total_weight_sum),
+        "solution_weight_sum": float(solution_weight_sum),
+        "not_solution_weight_sum": float(not_solution_weight_sum),
     }
     return kep_prediction_evaluation
 

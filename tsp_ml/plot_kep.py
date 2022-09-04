@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -8,7 +8,6 @@ from torch_geometric.data import Data
 from torch_geometric.utils.convert import to_networkx
 
 
-# TODO typehint
 def generate_kep_plot(predicted_instance: Data, folderpath: str) -> None:
     """Generates a plot of a KEP predicted instance,
     then saves it as a PNG file at the given folderpath."""
@@ -37,7 +36,8 @@ def generate_kep_plot(predicted_instance: Data, folderpath: str) -> None:
     plt.show()
 
 
-def get_predicted_edges_list(nx_kep_graph: nx.DiGraph):
+def get_predicted_edges_list(nx_kep_graph: nx.DiGraph) -> List[Tuple[int, int]]:
+    """Return a list of the edges included in the prediction (pred==1)"""
     predicted_edges = []
     for (edge_src, edge_dst, edge_features) in nx_kep_graph.edges(data=True):
         if edge_features["pred"] == 1:

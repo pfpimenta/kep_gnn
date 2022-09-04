@@ -19,7 +19,7 @@ def save_dict_to_json(dict: Dict[str, Any], json_filepath: str):
 
 
 def old_save_model(model: torch.nn.Module):
-    # save model state in the trained models folder
+    """Saves model state in the trained models folder"""
     model_name = get_trained_model_name(model)
     model_filepath = TRAINED_MODELS_FOLDER_PATH / f"{model_name}.pt"
     torch.save(model.state_dict(), model_filepath)
@@ -72,8 +72,8 @@ def load_model(
 def get_trained_model_name(
     model: torch.nn.Module, training_timestamp: Optional[str] = None
 ) -> str:
-    # generates a model name based on the name of the architecture and
-    # the current date and time
+    """Generates a model name based on the name of the architecture and
+    the current date and time"""
     model_architecture_name = model.__class__.__name__
     if training_timestamp is None:
         training_timestamp = datetime.now().strftime("%Y_%m_%d_%Hh%M")
@@ -85,12 +85,12 @@ def get_model(
     model_name: str = "TSP_GGCN",
     dataset: Optional[Dataset] = None,
 ) -> torch.nn.Module:
-    # returns an initialized model object
+    """Returns an initialized model object"""
     try:
         Model = AVAILABLE_MODELS[model_name]
     except KeyError:
         raise ValueError(f"No model named '{model_name}' found.")
-    if model_name == "KEPCE_GAT_PNA":
+    if "PNA" in model_name:
         model = Model(pna_deg=dataset.in_degree_histogram)
     else:
         model = Model()

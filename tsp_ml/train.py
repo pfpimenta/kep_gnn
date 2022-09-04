@@ -81,13 +81,18 @@ def training_step(
         label = one_hot(batch.y).to(torch.float32)
         loss = loss_function(scores, label)
     elif dataset_name == "KEP":
-        # loss = loss_function(scores, batch.edge_weights)  # KEP loss
+        loss = loss_function(
+            scores,
+            batch.edge_weights,
+            batch.edge_index,
+        )
+    elif dataset_name == "KEPCE":
         loss = loss_function(
             scores,
             batch.edge_weights,
             batch.edge_index,
             batch.counter_edge,
-        )  # KEP loss
+        )
     # backpropagate
     loss.backward()
     optimizer.step()
