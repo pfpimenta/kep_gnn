@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import torch
 import torch.nn.functional as F
+from models.gnn_layers.node_wise_softmax import node_wise_softmax
 from torch_geometric.nn import GATv2Conv, Linear, PNAConv
 
 
@@ -110,16 +111,10 @@ class KEPCE_GAT_PNA(torch.nn.Module):
         edge_scores = self.fully_connected_edges_2(edge_features)
 
         # src_node-wise softmax
-        # TODO encapsulate to a GNN layer
-        # column_indexes = torch.range(0, num_nodes - 1).repeat(num_edges, 1)
-        # repeated_node_src = src.repeat(num_nodes, 1).t()
-        # mask = (repeated_node_src == column_indexes).to(torch.int16)
-        # edge_scores = edge_scores.repeat(1, num_nodes)
-        # edge_scores = mask * edge_scores
-        # edge_scores[edge_scores == 0.0] = float("-inf")
-        # edge_scores = torch.softmax(input=edge_scores, dim=0)
-        # edge_scores[edge_scores != edge_scores] = 0  # substitute NaN for 0.0
-        # edge_scores = torch.sum(input=edge_scores, dim=1)
-        # TODO test now kk
-        # breakpoint()
+        edge_scores[:, 0] = node_wise_softmax(
+            edge_scores=edge_scores[:, 0], node_indexes=src, num_nodes=num_nodes
+        )
+        edge_scores[:, 1] = node_wise_softmax(
+            edge_scores=edge_scores[:, 1], node_indexes=src, num_nodes=num_nodes
+        )
         return edge_scores
