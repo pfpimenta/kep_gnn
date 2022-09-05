@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple
 
@@ -11,6 +12,7 @@ from torch_geometric.utils.convert import to_networkx
 def generate_kep_plot(predicted_instance: Data, folderpath: str) -> None:
     """Generates a plot of a KEP predicted instance,
     then saves it as a PNG file at the given folderpath."""
+    plt.clf()
     # cast to nx.Graph
     nx_kep_graph = to_networkx(
         data=predicted_instance,
@@ -30,7 +32,8 @@ def generate_kep_plot(predicted_instance: Data, folderpath: str) -> None:
         width=3,
     )
     # save plot as a PNG
-    plot_filename = f"{predicted_instance.id}.png"
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    plot_filename = f"{timestamp}_{predicted_instance.id}.png"
     filepath = Path(folderpath) / plot_filename
     plt.savefig(filepath, dpi=300, bbox_inches="tight")
     plt.show()

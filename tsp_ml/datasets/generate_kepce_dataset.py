@@ -96,9 +96,6 @@ def generate_kepce_dataset(
             G=kepce_instance_nx_graph, edge_attr="edge_weights"
         )
         kep_instance_pyg_graph.id = instance_id
-        # import pdb
-
-        # pdb.set_trace()
         # save KEPCE instance on output_dir
         filename = f"kepce_instance_{instance_id}.pt"
         filepath = output_dir / filename

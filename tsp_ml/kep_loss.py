@@ -7,9 +7,9 @@ from torch.autograd import Variable
 from torch.nn.modules.loss import _Loss
 
 EPSILON = 0.0000000001
-KEP_LOSS_COEFFICIENT = 0.01
-INCOMING_EDGE_NODES_COEFFICIENT = 0.5
-OUTCOMING_EDGE_NODES_COEFFICIENT = 0.5
+KEP_LOSS_COEFFICIENT = 0.1
+INCOMING_EDGE_NODES_COEFFICIENT = 0.45
+OUTCOMING_EDGE_NODES_COEFFICIENT = 0.45
 
 
 def edges_restriction_loss(pred: Tensor, edge_node_ids: Tensor) -> Tensor:

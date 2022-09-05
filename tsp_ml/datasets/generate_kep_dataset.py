@@ -14,9 +14,9 @@ sys.path.insert(0, "/home/pimenta/tsp_ml/tsp_ml")
 from paths import get_dataset_folder_path
 
 ## script parameters
-NUM_INSTANCES = 2000
-NUM_NODES = 250
-NUM_EDGES = 5500
+NUM_INSTANCES = 5000
+NUM_NODES = 15
+NUM_EDGES = 45
 NODE_TYPES = [
     "NDD",  # non-directed donors
     "PDP",  # patient-donor pair
@@ -30,7 +30,7 @@ def generate_kep_instance(
     num_edges: int,
     node_types: List[str],
     node_type_distribution: List[float],
-    add_node_features: bool = False,
+    add_node_features: bool = True,
 ) -> nx.DiGraph:
     """Generates one instance of the Kidney-Exchange Problem:
     a directed graph, where nodes represent patients, donnors, or patient-donnor-pairs,
@@ -99,6 +99,7 @@ def generate_kep_dataset(
     node_type_distribution: Optional[List[float]] = None,
     num_nodes: Optional[int] = None,
     num_edges: Optional[int] = None,
+    add_node_features: bool = True,
 ):
     """Generates 'num_instances' instances of the Kidney-Exchange Problem
     and saves them in .PT files inside 'output_dir'."""
@@ -108,9 +109,19 @@ def generate_kep_dataset(
             num_edges=num_edges,
             node_types=node_types,
             node_type_distribution=node_type_distribution,
+            add_node_features=add_node_features,
         )
         # convert from nx.DiGraph to torch_geometric.data.Data
-        kep_instance_pyg_graph = from_networkx(kep_instance_nx_graph)
+        node_feature_names = [
+            "num_edges_in",
+            "num_edges_out",
+            "is_NDD",
+            "is_PDP",
+            "is_P",
+        ]
+        kep_instance_pyg_graph = from_networkx(
+            G=kep_instance_nx_graph, group_node_attrs=node_feature_names
+        )
         # set instance ID
         instance_id = nx.weisfeiler_lehman_graph_hash(
             G=kep_instance_nx_graph, edge_attr="edge_weights"
@@ -133,5 +144,6 @@ if __name__ == "__main__":
             num_edges=NUM_EDGES,
             node_types=NODE_TYPES,
             node_type_distribution=NODE_TYPE_DISTRIBUTION,
+            add_node_features=True,
             output_dir=kep_dataset_dir,
         )

@@ -2,11 +2,12 @@
 import torch
 from train import DATASET_NAME, train
 
-BATCH_SIZE = 10
-NUM_EPOCHS = 20
-LEARNING_RATE = 0.003
-MODEL_NAME = "KEP_GCN"
+BATCH_SIZE = 1
+NUM_EPOCHS = 5
+LEARNING_RATE = 0.001
+MODEL_NAME = "KEP_GAT_PNA_CE"
 DATASET_NAME = "KEP"
+MINOR_EVAL = True
 
 # TODO save training params with model
 
@@ -23,4 +24,5 @@ if __name__ == "__main__":
         num_epochs=NUM_EPOCHS,
         learning_rate=LEARNING_RATE,
         use_validation=False,
+        minor_eval=MINOR_EVAL,
     )
