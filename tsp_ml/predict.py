@@ -15,8 +15,8 @@ from tqdm import tqdm
 
 # TODO refactor with evaluate.py (Don't Repeat Yourself principle)
 
-DATASET_NAME = "KEPCE"
-TRAINED_MODEL_NAME = "2022_08_30_17h04_KEPCE_GAT_PNA"
+DATASET_NAME = "KEP"
+TRAINED_MODEL_NAME = "2022_09_09_11h38_GreedyModel"
 BATCH_SIZE = 1
 
 
@@ -145,13 +145,7 @@ def predict(
             label = label.to(torch.float32)
 
         scores = model(data=batch)
-
-        if dataset.dataset_name == "DTSP":
-            # graph+cost classification
-            pred = scores.to(int)  # DTSP
-        elif dataset.dataset_name == "TSP" or "KEP":
-            # edge classification
-            pred = torch.argmax(scores, 1).to(int)
+        pred = model.predict(scores=scores, edge_index=batch.edge_index)
 
         # get instance IDs
         row, _ = batch.edge_index
