@@ -14,9 +14,9 @@ sys.path.insert(0, "/home/pimenta/tsp_ml/tsp_ml")
 from paths import get_dataset_folder_path
 
 ## script parameters
-NUM_INSTANCES = 5000
-NUM_NODES = 15
-NUM_EDGES = 45
+NUM_INSTANCES = 10000
+NUM_NODES = 300
+NUM_EDGES = 5500
 NODE_TYPES = [
     "NDD",  # non-directed donors
     "PDP",  # patient-donor pair
