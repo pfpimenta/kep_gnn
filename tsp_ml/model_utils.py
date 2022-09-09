@@ -18,14 +18,6 @@ def save_dict_to_json(dict: Dict[str, Any], json_filepath: str):
         file.write(json_string)
 
 
-def old_save_model(model: torch.nn.Module):
-    """Saves model state in the trained models folder"""
-    model_name = get_trained_model_name(model)
-    model_filepath = TRAINED_MODELS_FOLDER_PATH / f"{model_name}.pt"
-    torch.save(model.state_dict(), model_filepath)
-    print(f"Saved {model_filepath}")
-
-
 def save_model(model: torch.nn.Module, training_report: Dict[str, Any]):
     """Creates a folder and saves in it the model state and a JSON file with
     information about the training process"""
