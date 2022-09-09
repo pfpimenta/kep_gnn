@@ -2,16 +2,14 @@
 # This script contains functions for training a model
 import sys
 import time
-from random import randint
 from typing import Optional
 
 import torch
 from average_meter import AverageMeter
 from dataset_utils import get_dataloaders
-from kep_evaluation import evaluate_kep_instance_prediction
+from kep_evaluation import minor_kep_evaluation
 from kep_loss import KEPLoss
 from model_utils import get_model, save_model, set_torch_seed
-from plot_kep import generate_kep_plot
 from torch.nn.functional import one_hot
 from torch_geometric.data.batch import Batch
 from torch_geometric.loader import DataLoader
@@ -102,36 +100,6 @@ def training_step(
     return epoch_loss
 
 
-def minor_evaluation(
-    model: torch.nn.Module,
-    dataloader: DataLoader,
-):
-    print("\n\nMinor evaluation: predicting on 3 random instances...")
-    # predict 3 random instances
-    num_instances = len(dataloader.dataset)
-    num_random_instances = 3
-    folderpath = "/home/pimenta/tsp_ml/results"  # TODO change it
-    for i in range(num_random_instances):
-        # randomly choose an instance
-        instance_index = randint(0, num_instances - 1)
-        instance = dataloader.dataset[instance_index]
-
-        # predict
-        instance.scores = model(instance)
-        instance.pred = torch.argmax(instance.scores, 1).to(int)
-
-        # print prediction info
-        prediction_info = evaluate_kep_instance_prediction(
-            instance_id=instance.id,
-            pred=instance.pred,
-            edge_index=instance.edge_index,
-            edge_weights=instance.edge_weights,
-        )
-        print(f"\nPrediction info: {prediction_info}")
-
-        generate_kep_plot(predicted_instance=instance, folderpath=folderpath)
-
-
 def training_epoch(
     model: torch.nn.Module,
     device: torch.device,
@@ -152,8 +120,9 @@ def training_epoch(
             epoch_loss=epoch_loss,
             dataset_name=dataloader.dataset.dataset_name,
         )
-        if i == 5 and minor_eval:
-            minor_evaluation(model=model, dataloader=dataloader)
+        if (i % 2500 == 0) and minor_eval:
+            print(f"Minor evaluation at step {i}")
+            minor_kep_evaluation(model=model, dataloader=dataloader)
 
     num_batches = int(len(dataloader.dataset) / dataloader.batch_size)
     avg_loss_per_batch = epoch_loss.sum / num_batches
@@ -164,7 +133,7 @@ def training_epoch(
         f" Average loss per batch: {avg_loss_per_batch}"
     )
     if minor_eval:
-        minor_evaluation(model=model, dataloader=dataloader)
+        minor_kep_evaluation(model=model, dataloader=dataloader)
     return epoch_loss.average
 
 

@@ -2,18 +2,55 @@
 # Script with functions to evaluate KEP predictions
 import os
 import sys
+from random import randint
 from typing import Any, Dict
 
 import pandas as pd
 import torch
 from paths import get_eval_results_folder_path, get_predictions_folder_path
+from plot_kep import generate_kep_plot
 from torch import Tensor
+from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 
-TRAINED_MODEL_NAME = "2022_08_17_17h30_KEPCE_GCN"
-DATASET_NAME = "KEPCE"
+TRAINED_MODEL_NAME = "2022_09_09_11h38_GreedyModel"
+DATASET_NAME = "KEP"
 # weather to redo evaluation and save it overwriting the pre-existing CSV:
 OVERWRITE_RESULTS = True
+
+
+def minor_kep_evaluation(
+    model: torch.nn.Module,
+    dataloader: DataLoader,
+    save_plot: bool = False,
+):
+    print("\n\nMinor evaluation: predicting on 3 random instances...")
+    # predict 3 random instances
+    num_instances = len(dataloader.dataset)
+    num_random_instances = 3
+    folderpath = "/home/pimenta/tsp_ml/results"  # TODO change it
+    for i in range(num_random_instances):
+        # randomly choose an instance
+        instance_index = randint(0, num_instances - 1)
+        instance = dataloader.dataset[instance_index]
+
+        # predict
+        instance.scores = model(instance)
+        instance.pred = model.predict(
+            scores=instance.scores, edge_index=instance.edge_index
+        )
+
+        # print prediction info
+        prediction_info = evaluate_kep_instance_prediction(
+            instance_id=instance.id,
+            pred=instance.pred,
+            edge_index=instance.edge_index,
+            edge_weights=instance.edge_weights,
+        )
+        print(f"\nPrediction info: {prediction_info}")
+
+        if save_plot:
+            generate_kep_plot(predicted_instance=instance, folderpath=folderpath)
 
 
 def evaluate_kep_instance_prediction(
@@ -21,6 +58,7 @@ def evaluate_kep_instance_prediction(
     pred: Tensor,
     edge_index: Tensor,
     edge_weights: Tensor,
+    num_nodes: int,
 ) -> Dict[str, Any]:
     """Evaluates a predicted instance of the Kidney-Exchange Problem,
     where the prediction is edge binary classification (an edge may be in the solution or not).
@@ -30,6 +68,7 @@ def evaluate_kep_instance_prediction(
     src, dst = edge_index
     is_solution_valid = True
     solution_edge_indexes = torch.nonzero(pred).flatten()
+    total_num_edges_in_solution = torch.sum(pred)
     total_num_edges = edge_index.shape[1]
     num_valid_edges = {}
     num_invalid_edges = {}
@@ -45,7 +84,9 @@ def evaluate_kep_instance_prediction(
         # get num_valid_edges and num_invalid_edges
         num_valid_edges[name] = num_unique_nodes_in_solution
         num_invalid_edges[name] = num_nodes_in_solution - num_unique_nodes_in_solution
-        valid_edges_percentage[name] = num_valid_edges[name] / total_num_edges
+        valid_edges_percentage[name] = (
+            num_valid_edges[name] / total_num_edges_in_solution
+        )
         # solution is only valid if there are no invalid edges
         if num_invalid_edges[name] > 0:
             is_solution_valid = False
@@ -62,6 +103,7 @@ def evaluate_kep_instance_prediction(
         "instance_id": str(instance_id),
         "is_solution_valid": int(is_solution_valid),
         "total_num_edges": int(total_num_edges),
+        "total_num_nodes": num_nodes,
         "num_valid_edges_src": int(num_valid_edges["src"]),
         "num_invalid_edges_src": int(num_invalid_edges["src"]),
         "valid_edges_percentage_src": float(valid_edges_percentage["src"]),
@@ -86,11 +128,13 @@ def evaluate_kep_predicted_instances(predictions_dir: str) -> pd.DataFrame:
     ):
         filepath = predicted_instances_dir / filename
         predicted_instance = torch.load(filepath)
+        num_nodes = predicted_instance.x.shape[0]
         kep_prediction_evaluation = evaluate_kep_instance_prediction(
             instance_id=predicted_instance.id,
             pred=predicted_instance.pred,
             edge_index=predicted_instance.edge_index,
             edge_weights=predicted_instance.edge_weights,
+            num_nodes=num_nodes,
         )
         instance_eval_df = pd.DataFrame([kep_prediction_evaluation])
         eval_df = pd.concat([eval_df, instance_eval_df], ignore_index=True)
@@ -98,22 +142,24 @@ def evaluate_kep_predicted_instances(predictions_dir: str) -> pd.DataFrame:
 
 
 def print_evaluation_overview(eval_df: pd.DataFrame) -> None:
-    # instance validity information:
+    # dataset information
     print(f"Total number of instances: {len(eval_df)}")
-    print(f"Number of valid solutions: {eval_df['is_solution_valid'].sum()}")
-    print(f"Valid solution percentage: {100*eval_df['is_solution_valid'].mean()}:.2f%")
-    # edge validity information:
     print(f"Mean total_num_edges: {eval_df['total_num_edges'].mean():.2f}")
-    print(f"Mean num_valid_edges_src: {eval_df['num_valid_edges_src'].mean():.2f}")
-    print(f"Mean num_invalid_edges_src: {eval_df['num_invalid_edges_src'].mean():.2f}")
-    print(
-        f"Mean valid_edges_percentage_src: {eval_df['valid_edges_percentage_src'].mean():.2f}"
-    )
-    print(f"Mean num_valid_edges_dst: {eval_df['num_valid_edges_dst'].mean():.2f}")
-    print(f"Mean num_invalid_edges_dst: {eval_df['num_invalid_edges_dst'].mean():.2f}")
-    print(
-        f"Mean valid_edges_percentage_dst: {eval_df['valid_edges_percentage_dst'].mean():.2f}"
-    )
+    print(f"Mean total_num_nodes: {eval_df['total_num_nodes'].mean():.2f}")
+    # instance validity information:
+    print(f"Number of valid solutions: {eval_df['is_solution_valid'].sum()}")
+    print(f"Valid solution percentage: {100*eval_df['is_solution_valid'].mean():.2f}%")
+    # edge validity information:
+    # print(f"Mean num_valid_edges_src: {eval_df['num_valid_edges_src'].mean():.2f}")
+    # print(f"Mean num_invalid_edges_src: {eval_df['num_invalid_edges_src'].mean():.2f}")
+    # print(
+    #     f"Mean valid_edges_percentage_src: {eval_df['valid_edges_percentage_src'].mean():.2f}"
+    # )
+    # print(f"Mean num_valid_edges_dst: {eval_df['num_valid_edges_dst'].mean():.2f}")
+    # print(f"Mean num_invalid_edges_dst: {eval_df['num_invalid_edges_dst'].mean():.2f}")
+    # print(
+    #     f"Mean valid_edges_percentage_dst: {eval_df['valid_edges_percentage_dst'].mean():.2f}"
+    # )
     # edge weight information:
     print(f"Mean total_weight_sum: {eval_df['total_weight_sum'].mean():.2f}")
     print(f"Mean solution_weight_sum: {eval_df['solution_weight_sum'].mean():.2f}")
@@ -147,7 +193,9 @@ def kep_evaluation(
     If 'print_overview' is set to True, a summary of the evaluation is printed.
     """
 
-    print(f"\n\nEvaluating the model predictions on the {step} KEP dataset")
+    print(
+        f"\n\nEvaluating {trained_model_name}'s predictions on the {step} KEP dataset"
+    )
     predictions_dir = get_predictions_folder_path(
         dataset_name=dataset_name,
         step=step,
@@ -176,7 +224,7 @@ def kep_evaluation(
 if __name__ == "__main__":
     # compute and save evaluation for predictions on the train, test and val datasets
     # steps_to_predict = ["train", "test", "val"]
-    steps_to_predict = ["val"]
+    steps_to_predict = ["test"]
     for step in steps_to_predict:
         kep_evaluation(
             step=step,
