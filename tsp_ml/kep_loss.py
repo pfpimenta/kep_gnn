@@ -2,14 +2,15 @@
 from typing import Optional
 
 import torch
+from greedy import greedy
 from torch import Tensor
 from torch.autograd import Variable
 from torch.nn.modules.loss import _Loss
 
 EPSILON = 0.0000000001
-KEP_LOSS_COEFFICIENT = 0.1
-INCOMING_EDGE_NODES_COEFFICIENT = 0.45
-OUTCOMING_EDGE_NODES_COEFFICIENT = 0.45
+KEP_LOSS_COEFFICIENT = 1.0
+INCOMING_EDGE_NODES_COEFFICIENT = 0.0
+OUTCOMING_EDGE_NODES_COEFFICIENT = 0.0
 
 
 def edges_restriction_loss(pred: Tensor, edge_node_ids: Tensor) -> Tensor:
@@ -88,24 +89,27 @@ def kep_loss(
             # scores only for positive class
             scores = scores * (1 - counter_edges)
 
-    pred = torch.argmax(scores, dim=1)  # TODO test loss using scores
+    # pred = torch.argmax(scores, dim=1)  # TODO test loss using scores
+    pred = greedy(edge_scores=scores, edge_index=edge_index)
+
     kep_loss = unsupervised_kep_loss(pred=pred, edge_weights=edge_weights)
 
     # add regularization terms modelling restrictions
     src, dst = edge_index
-    outcoming_edges_loss = edges_restriction_loss(
-        pred=pred,
-        edge_node_ids=src,
-    )
-    incoming_edges_loss = edges_restriction_loss(
-        pred=pred,
-        edge_node_ids=dst,
-    )
+    # outcoming_edges_loss = edges_restriction_loss(
+    #     pred=pred,
+    #     edge_node_ids=src,
+    # )
+    # incoming_edges_loss = edges_restriction_loss(
+    #     pred=pred,
+    #     edge_node_ids=dst,
+    # )
 
     loss = (
-        KEP_LOSS_COEFFICIENT * kep_loss
-        + OUTCOMING_EDGE_NODES_COEFFICIENT * outcoming_edges_loss
-        + INCOMING_EDGE_NODES_COEFFICIENT * incoming_edges_loss
+        KEP_LOSS_COEFFICIENT
+        * kep_loss
+        # + OUTCOMING_EDGE_NODES_COEFFICIENT * outcoming_edges_loss
+        # + INCOMING_EDGE_NODES_COEFFICIENT * incoming_edges_loss
     )
 
     # print(f"\n\nDEBUG outcoming_edges_loss: {outcoming_edges_loss}")
