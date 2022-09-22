@@ -161,6 +161,10 @@ class KEP_GAT_PNA_CE(torch.nn.Module):
         )
         return edge_scores
 
-    def predict(self, scores: Tensor, edge_index: Tensor) -> Tensor:
-        solution = greedy(edge_scores=scores, edge_index=edge_index)
+    def predict(self, data: Batch) -> Tensor:
+        solution = greedy(
+            edge_scores=data.scores,
+            edge_index=data.edge_index,
+            node_types=data.type[0],
+        )
         return solution

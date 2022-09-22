@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import torch
 import torch.nn.functional as F
+from greedy import greedy, greedy_only_paths
 from models.gnn_layers.node_wise_softmax import node_wise_softmax
+from torch_geometric.data import Batch
 from torch_geometric.nn import GATv2Conv, Linear, PNAConv
 
 
@@ -109,3 +111,12 @@ class KEP_GAT_PNA(torch.nn.Module):
             edge_scores=edge_scores[:, 1], node_indexes=src, num_nodes=num_nodes
         )
         return edge_scores
+
+    def predict(self, data: Batch) -> torch.Tensor:
+        # solution = greedy(edge_scores=data.scores, edge_index=data.edge_index)
+        solution = greedy(
+            edge_scores=data.scores,
+            edge_index=data.edge_index,
+            node_types=data.type[0],
+        )
+        return solution

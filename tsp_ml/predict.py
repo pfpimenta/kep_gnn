@@ -16,7 +16,8 @@ from tqdm import tqdm
 # TODO refactor with evaluate.py (Don't Repeat Yourself principle)
 
 DATASET_NAME = "KEP"
-TRAINED_MODEL_NAME = "2022_09_09_11h38_GreedyModel"
+TRAINED_MODEL_NAME = "2022_09_19_23h55_GreedyPathsModel"
+# TRAINED_MODEL_NAME = "2022_09_08_03h35_KEP_GAT_PNA_CE"
 BATCH_SIZE = 1
 
 
@@ -98,6 +99,7 @@ def save_predictions_to_csv(
 
 def predict(
     model: torch.nn.Module,
+    device: torch.device,
     dataset: Dataset,
     batch_size: int,
     output_dir: str,
@@ -144,8 +146,8 @@ def predict(
             label = batch.y
             label = label.to(torch.float32)
 
-        scores = model(data=batch)
-        pred = model.predict(scores=scores, edge_index=batch.edge_index)
+        batch.scores = model(data=batch)
+        pred = model.predict(data=batch)
 
         # get instance IDs
         row, _ = batch.edge_index
@@ -155,7 +157,7 @@ def predict(
         # save predicted instance in a .PT file
         if save_as_pt:
             graph = batch[0]
-            graph.scores = scores
+            graph.scores = batch.scores
             graph.pred = pred
             graph_filepath = predicted_instances_dir / (graph.id + "_pred.pt")
             torch.save(graph, graph_filepath)
@@ -177,14 +179,14 @@ if __name__ == "__main__":
     print(f"Using {device}")
 
     # steps_to_predict = ["train", "test", "val"]
-    steps_to_predict = ["test"]
+    # steps_to_predict = ["test"]
+    steps_to_predict = ["test_small"]
     for step in steps_to_predict:
         # setup data
         dataset = get_dataset(dataset_name=DATASET_NAME, step=step)
         print_dataset_information(dataset=dataset)
 
         # load model
-        # TODO refactor to load/save train dataset histogram
         model = load_model(trained_model_name=TRAINED_MODEL_NAME, dataset=dataset)
 
         print(f"\n\nPredicting on the {step} dataset")
@@ -195,6 +197,7 @@ if __name__ == "__main__":
         )
         predict(
             model=model,
+            device=device,
             dataset=dataset,
             output_dir=predictions_dir,
             batch_size=BATCH_SIZE,
