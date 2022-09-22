@@ -95,8 +95,8 @@ def generate_kep_instance(
 def generate_kep_dataset(
     num_instances: int,
     output_dir: str,
-    node_types: Optional[List[str]] = None,
-    node_type_distribution: Optional[List[float]] = None,
+    node_types: List[str] = NODE_TYPES,
+    node_type_distribution: List[float] = NODE_TYPE_DISTRIBUTION,
     num_nodes: Optional[int] = None,
     num_edges: Optional[int] = None,
     add_node_features: bool = True,

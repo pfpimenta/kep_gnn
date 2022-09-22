@@ -16,43 +16,9 @@ class KEPDataset(Dataset):
         super(KEPDataset, self).__init__(transform, pre_transform)
         self.dataset_folderpath = dataset_folderpath
         self.__num_edges = None
+        self.__num_nodes = None
         self.__maximum_in_degree = None
         self.__in_degree_histogram = None
-
-    @property
-    def num_classes(self) -> int:
-        """The Kidney Exchange Problem (KEP) is modelled here as an edge
-        binary classification problem: an edge may either be or
-        not be in the solution
-        """
-        return 2
-
-    @property
-    def num_edges(self) -> int:
-        """Total number of edges in all graphs of dataset"""
-        if self.__num_edges is None:
-            if self.properties_json_filepath.exists():
-                # load previously computed total number of edges of dataset
-                self.load_properties()
-            else:
-                # compute total number of edges of dataset
-                print("Computing total number of edges of dataset...")
-                self.__num_edges = 0
-                for data in self:
-                    self.__num_edges += data.num_edges
-        return self.__num_edges
-
-    @property
-    def get_class_weights(self) -> Tuple[float, float]:
-        """Class weights to adjust the loss function
-        based on the class distribution of the given dataset.
-        WARNING: as there is no ground truth labels, it is not possible
-        to compute the class weights.
-        """
-        raise ValueError(
-            "As there is no ground truth labels, it is not possible"
-            " to compute the class weights."
-        )
 
     @property
     def processed_file_names(self) -> List[str]:
@@ -84,6 +50,7 @@ class KEPDataset(Dataset):
         dataset_properties = {
             "maximum_in_degree": self.maximum_in_degree,
             "in_degree_histogram": self.in_degree_histogram.tolist(),
+            "num_nodes": self.num_nodes,
             "num_edges": self.num_edges,
         }
         with open(self.properties_json_filepath, "w", encoding="utf-8") as f:
@@ -93,12 +60,87 @@ class KEPDataset(Dataset):
     def load_properties(self) -> None:
         with open(self.properties_json_filepath) as json_file:
             dataset_properties = json.load(json_file)
+        self.__num_nodes = dataset_properties["num_nodes"]
         self.__num_edges = dataset_properties["num_edges"]
         self.__maximum_in_degree = dataset_properties["maximum_in_degree"]
         self.__in_degree_histogram = torch.Tensor(
             dataset_properties["in_degree_histogram"]
         ).to(int)
         print(f"Loaded properties: {dataset_properties}")
+
+    def compute_properties(self) -> None:
+        """Computes all the dataset properties
+        and stores them in hidden class attributes.
+        The dataset properties are:
+        - self.num_edges: The total number of edges in the dataset
+        - self.num_nodes:The total number of nodes in the dataset
+        - self.maximum_in_degree: The maximum in-degree of all nodes of all instances of the dataset
+        - self.in_degree_histogram: Histogram of the quantity of in-degree values of the dataset nodes
+        """
+        print("Computing maximum in-degree of dataset...")
+        print("Computing total number of edges and nodes of dataset...")
+        self.__num_edges = 0
+        self.__num_nodes = 0
+        self.__maximum_in_degree = 0
+        for data in self:
+            d = degree(data.edge_index[1], num_nodes=data.num_nodes, dtype=torch.long)
+            self.__maximum_in_degree = max(self.__maximum_in_degree, int(d.max()))
+            self.__num_edges += data.num_edges
+            self.__num_nodes += data.num_nodes
+        self.__in_degree_histogram = torch.zeros(
+            self.maximum_in_degree + 1, dtype=torch.long
+        )
+        print("Computing in-degree histogram of dataset...")
+        for data in self:
+            d = degree(data.edge_index[1], num_nodes=data.num_nodes, dtype=torch.long)
+            self.__in_degree_histogram += torch.bincount(
+                d, minlength=self.__in_degree_histogram.numel()
+            )
+
+    @property
+    def num_classes(self) -> int:
+        """The Kidney Exchange Problem (KEP) is modelled here as an edge
+        binary classification problem: an edge may either be or
+        not be in the solution
+        """
+        return 2
+
+    @property
+    def num_edges(self) -> int:
+        """Total number of edges in all graphs of dataset"""
+        if self.__num_edges is None:
+            if self.properties_json_filepath.exists():
+                # load previously computed total number of edges of dataset
+                self.load_properties()
+            else:
+                # compute total number of edges of dataset
+                self.compute_properties()
+        return self.__num_edges
+
+    @property
+    def num_nodes(self) -> int:
+        """Total number of nodes in all graphs of dataset"""
+        if self.__num_nodes is None:
+            if self.properties_json_filepath.exists():
+                # load previously computed total number of nodes of dataset
+                self.load_properties()
+            else:
+                # compute total number of nodes of dataset
+                self.compute_properties()
+        print(f"self.__num_nodes: {self.__num_nodes}")
+        return self.__num_nodes
+
+    @property
+    def get_class_weights(self) -> Tuple[float, float]:
+        """Class weights to adjust the loss function
+        based on the class distribution of the given dataset.
+        WARNING: as there is no ground truth labels, it is not possible
+        to compute the class weights.
+        """
+        raise ValueError(
+            "As there is no ground truth labels, it is not possible"
+            " to compute the class weights."
+        )
 
     @property
     def maximum_in_degree(self) -> int:
@@ -108,16 +150,7 @@ class KEPDataset(Dataset):
                 # load previously computed maximum in-degree of dataset
                 self.load_properties()
             else:
-                # compute maximum in-degree of dataset
-                print("Computing maximum in-degree of dataset...")
-                self.__maximum_in_degree = -1
-                for data in self:
-                    d = degree(
-                        data.edge_index[1], num_nodes=data.num_nodes, dtype=torch.long
-                    )
-                    self.__maximum_in_degree = max(
-                        self.__maximum_in_degree, int(d.max())
-                    )
+                self.compute_properties()
         print(f"Maximum in-degree of dataset: {self.__maximum_in_degree}")
         return self.__maximum_in_degree
 
@@ -127,12 +160,5 @@ class KEPDataset(Dataset):
         This tensor is used by th PNA Convolution."""
         if self.__in_degree_histogram is None:
             # compute in-degree histogram of dataset
-            print("Computing in-degree histogram of dataset...")
-            deg = torch.zeros(self.maximum_in_degree + 1, dtype=torch.long)
-            for data in self:
-                d = degree(
-                    data.edge_index[1], num_nodes=data.num_nodes, dtype=torch.long
-                )
-                deg += torch.bincount(d, minlength=deg.numel())
-            self.__in_degree_histogram = deg
+            self.compute_properties()
         return self.__in_degree_histogram
