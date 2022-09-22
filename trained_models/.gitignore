@@ -1,3 +1,4 @@
 # do not commit the saved trained models into the repo
 *.pt
+# do not commit the training reports
 *.json
