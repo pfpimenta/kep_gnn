@@ -16,8 +16,11 @@ class GreedyModel(torch.nn.Module):
         # score for negative class == 1 - score
         edge_scores = edge_scores.repeat(1, 2)
         edge_scores[:, 1] = 1 - edge_scores[:, 1]
+        breakpoint()
         return edge_scores
 
-    def predict(self, scores: Tensor, edge_index: Tensor) -> Tensor:
-        solution = greedy(edge_scores=scores, edge_index=edge_index)
+    def predict(self, data: Batch) -> Tensor:
+        solution = greedy(
+            edge_scores=data.scores, edge_index=data.edge_index
+        )  # TODO does not respect PDP conditional donation restriction
         return solution
