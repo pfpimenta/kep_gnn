@@ -13,8 +13,9 @@ from torch import Tensor
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 
-TRAINED_MODEL_NAME = "2022_09_09_11h38_GreedyModel"
 DATASET_NAME = "KEP"
+TRAINED_MODEL_NAME = "2022_09_19_23h55_GreedyPathsModel"
+# TRAINED_MODEL_NAME = "2022_09_08_03h35_KEP_GAT_PNA_CE"
 # weather to redo evaluation and save it overwriting the pre-existing CSV:
 OVERWRITE_RESULTS = True
 
@@ -36,9 +37,7 @@ def minor_kep_evaluation(
 
         # predict
         instance.scores = model(instance)
-        instance.pred = model.predict(
-            scores=instance.scores, edge_index=instance.edge_index
-        )
+        instance.pred = model.predict(data=instance)
 
         # print prediction info
         prediction_info = evaluate_kep_instance_prediction(
@@ -46,6 +45,7 @@ def minor_kep_evaluation(
             pred=instance.pred,
             edge_index=instance.edge_index,
             edge_weights=instance.edge_weights,
+            num_nodes=dataloader.dataset.num_nodes,
         )
         print(f"\nPrediction info: {prediction_info}")
 
@@ -80,6 +80,9 @@ def evaluate_kep_instance_prediction(
         unique_solution_node_ids = torch.unique(solution_node_ids)
         num_nodes_in_solution = solution_node_ids.shape[0]
         num_unique_nodes_in_solution = unique_solution_node_ids.shape[0]
+        # TODO PDP restriction
+        #
+        # breakpoint()
 
         # get num_valid_edges and num_invalid_edges
         num_valid_edges[name] = num_unique_nodes_in_solution
@@ -90,6 +93,8 @@ def evaluate_kep_instance_prediction(
         # solution is only valid if there are no invalid edges
         if num_invalid_edges[name] > 0:
             is_solution_valid = False
+        # TODO check conditional donation restriction for PDPs
+        # print("TODO : check conditional donation restriction for PDPs !!!")
 
     # sum of all edge weights
     total_weight_sum = sum(edge_weights)
@@ -150,16 +155,16 @@ def print_evaluation_overview(eval_df: pd.DataFrame) -> None:
     print(f"Number of valid solutions: {eval_df['is_solution_valid'].sum()}")
     print(f"Valid solution percentage: {100*eval_df['is_solution_valid'].mean():.2f}%")
     # edge validity information:
-    # print(f"Mean num_valid_edges_src: {eval_df['num_valid_edges_src'].mean():.2f}")
-    # print(f"Mean num_invalid_edges_src: {eval_df['num_invalid_edges_src'].mean():.2f}")
-    # print(
-    #     f"Mean valid_edges_percentage_src: {eval_df['valid_edges_percentage_src'].mean():.2f}"
-    # )
-    # print(f"Mean num_valid_edges_dst: {eval_df['num_valid_edges_dst'].mean():.2f}")
-    # print(f"Mean num_invalid_edges_dst: {eval_df['num_invalid_edges_dst'].mean():.2f}")
-    # print(
-    #     f"Mean valid_edges_percentage_dst: {eval_df['valid_edges_percentage_dst'].mean():.2f}"
-    # )
+    print(f"Mean num_valid_edges_src: {eval_df['num_valid_edges_src'].mean():.2f}")
+    print(f"Mean num_invalid_edges_src: {eval_df['num_invalid_edges_src'].mean():.2f}")
+    print(
+        f"Mean valid_edges_percentage_src: {eval_df['valid_edges_percentage_src'].mean():.2f}"
+    )
+    print(f"Mean num_valid_edges_dst: {eval_df['num_valid_edges_dst'].mean():.2f}")
+    print(f"Mean num_invalid_edges_dst: {eval_df['num_invalid_edges_dst'].mean():.2f}")
+    print(
+        f"Mean valid_edges_percentage_dst: {eval_df['valid_edges_percentage_dst'].mean():.2f}"
+    )
     # edge weight information:
     print(f"Mean total_weight_sum: {eval_df['total_weight_sum'].mean():.2f}")
     print(f"Mean solution_weight_sum: {eval_df['solution_weight_sum'].mean():.2f}")
@@ -225,6 +230,7 @@ if __name__ == "__main__":
     # compute and save evaluation for predictions on the train, test and val datasets
     # steps_to_predict = ["train", "test", "val"]
     steps_to_predict = ["test"]
+    # steps_to_predict = ["test_small"]
     for step in steps_to_predict:
         kep_evaluation(
             step=step,

@@ -67,6 +67,7 @@ def kep_loss(
     scores: Tensor,
     edge_weights: Tensor,
     edge_index: Tensor,
+    node_types: Tensor,
     counter_edges: Optional[Tensor] = None,
 ) -> Tensor:
     """Computes the custom KEP loss for a given edge-wise prediction.
@@ -90,7 +91,7 @@ def kep_loss(
             scores = scores * (1 - counter_edges)
 
     # pred = torch.argmax(scores, dim=1)  # TODO test loss using scores
-    pred = greedy(edge_scores=scores, edge_index=edge_index)
+    pred = greedy(edge_scores=scores, edge_index=edge_index, node_types=node_types)
 
     kep_loss = unsupervised_kep_loss(pred=pred, edge_weights=edge_weights)
 
@@ -139,11 +140,13 @@ class KEPLoss(_Loss):
         scores: Tensor,
         edge_weights: Tensor,
         edge_index: Tensor,
+        node_types: Tensor,
         counter_edges: Optional[Tensor] = None,
     ) -> Tensor:
         return kep_loss(
             scores=scores,
             edge_weights=edge_weights,
             edge_index=edge_index,
+            node_types=node_types,
             counter_edges=counter_edges,
         )

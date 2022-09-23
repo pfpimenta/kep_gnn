@@ -83,6 +83,7 @@ def training_step(
             scores,
             batch.edge_weights,
             batch.edge_index,
+            batch.type,
         )
     elif dataset_name == "KEPCE":
         loss = loss_function(

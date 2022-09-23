@@ -58,38 +58,17 @@ def greedy_only_cycles(
     pass
 
 
-def greedy_only_paths(
-    edge_scores: Tensor,
+def greedy_choose_path(
     edge_index: Tensor,
-    node_types: Tensor,
+    edge_scores: Tensor,
+    ndd_out_edge_scores: Tensor,
+    current_solution: Tensor,
 ) -> Tensor:
-    """
-    starts a path (TODO: make more paths) on a NDD node,
-    then follows the best scoring edge from node to node
-    until no more edges are available.
-    """
-    edge_scores = edge_scores[:, 1] / edge_scores[:, 0]
+
     src, _ = edge_index
-    solution = torch.zeros_like(edge_scores)
-
-    # select edges of NDD nodes
-    is_node_ndd_mask = torch.Tensor([int(type == "NDD") for type in node_types])
-    if torch.sum(is_node_ndd_mask) == 0:
-        # raise ValueError("No NDD node found in instance.")
-        print("No NDD node found in instance.")
-    ndd_node_ids = (is_node_ndd_mask == 1).nonzero(as_tuple=True)[0]
-    ndd_out_edge_ids = torch.Tensor()
-    for ndd_node_id in ndd_node_ids:
-        edge_ids = (src == ndd_node_id).nonzero(as_tuple=True)[0]
-        ndd_out_edge_ids = torch.cat((ndd_out_edge_ids, edge_ids))
-    is_edge_ndd_mask = torch.zeros_like(edge_scores)
-    is_edge_ndd_mask.scatter_(dim=0, index=ndd_out_edge_ids.to(torch.int64), value=1.0)
-    # print(f"DEBUG sum is_node_ndd_mask: {torch.sum(is_node_ndd_mask)}")
-
     # choose max score out of NDD-out-edges
-    ndd_out_edge_scores = edge_scores * is_edge_ndd_mask
     chosen_edge_index = torch.argmax(ndd_out_edge_scores)
-    solution[chosen_edge_index] = 1
+    current_solution[chosen_edge_index] = 1
 
     # mask edges that have become unavailable
     # (already src/dst of a chosen edge)
@@ -110,7 +89,7 @@ def greedy_only_paths(
 
         # choose next edge
         chosen_edge_index = torch.argmax(node_edge_scores)
-        solution[chosen_edge_index] = 1
+        current_solution[chosen_edge_index] = 1
 
         # mask edges that have become unavailable
         # (already src/dst of a chosen edge)
@@ -118,4 +97,48 @@ def greedy_only_paths(
             chosen_edge_index=chosen_edge_index, edge_index=edge_index
         )
         edge_scores[unavailable_edge_mask == 1] = 0
+    return current_solution, edge_scores
+
+
+def greedy_only_paths(
+    edge_scores: Tensor,
+    edge_index: Tensor,
+    node_types: Tensor,
+) -> Tensor:
+    """
+    repeats until there are no more valid edges
+    coming from an NDD node:
+    starts a path on a NDD node,
+    then follows the best scoring edge from node to node
+    until no more edges are available.
+    """
+    edge_scores = edge_scores[:, 1] / edge_scores[:, 0]
+    src, _ = edge_index
+    solution = torch.zeros_like(edge_scores)
+
+    # select edges of NDD nodes
+    is_node_ndd_mask = torch.Tensor([int(type == "NDD") for type in node_types])
+    if torch.sum(is_node_ndd_mask) == 0:
+        # raise ValueError("No NDD node found in instance.")
+        print("No NDD node found in instance.")  # TODO
+    ndd_node_ids = (is_node_ndd_mask == 1).nonzero(as_tuple=True)[0]
+    ndd_out_edge_ids = torch.Tensor()
+    for ndd_node_id in ndd_node_ids:
+        edge_ids = (src == ndd_node_id).nonzero(as_tuple=True)[0]
+        ndd_out_edge_ids = torch.cat((ndd_out_edge_ids, edge_ids))
+    is_edge_ndd_mask = torch.zeros_like(edge_scores)
+    is_edge_ndd_mask.scatter_(dim=0, index=ndd_out_edge_ids.to(torch.int64), value=1.0)
+
+    # add paths to the solution until there are no more valid edges
+    # coming from an NDD node
+    ndd_out_edge_scores = edge_scores * is_edge_ndd_mask
+    while (ndd_out_edge_scores == torch.zeros_like(ndd_out_edge_scores)).all() == False:
+        solution, edge_scores = greedy_choose_path(
+            edge_index=edge_index,
+            edge_scores=edge_scores,
+            ndd_out_edge_scores=ndd_out_edge_scores,
+            current_solution=solution,
+        )
+        ndd_out_edge_scores = edge_scores * is_edge_ndd_mask
+
     return solution

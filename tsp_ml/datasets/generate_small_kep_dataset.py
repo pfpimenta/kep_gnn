@@ -17,6 +17,7 @@ if __name__ == "__main__":
         num_instances=100,
         num_nodes=10,
         num_edges=30,
+        node_type_distribution=[0.3, 0.8, 0.3],
         add_node_features=True,
         output_dir=kep_dataset_dir,
     )
