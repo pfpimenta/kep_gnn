@@ -9,13 +9,15 @@ import pandas as pd
 import torch
 from paths import get_eval_results_folder_path, get_predictions_folder_path
 from plot_kep import generate_kep_plot
-from torch import Tensor
+from torch import Tensor, tensor
+from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
+from torch_geometric.utils.degree import degree
 from tqdm import tqdm
 
 DATASET_NAME = "KEP"
-TRAINED_MODEL_NAME = "2022_09_19_23h55_GreedyPathsModel"
-# TRAINED_MODEL_NAME = "2022_09_08_03h35_KEP_GAT_PNA_CE"
+# TRAINED_MODEL_NAME = "2022_09_19_23h55_GreedyPathsModel"
+TRAINED_MODEL_NAME = "2022_09_22_02h42_KEP_GAT_PNA_CE"
 # weather to redo evaluation and save it overwriting the pre-existing CSV:
 OVERWRITE_RESULTS = True
 
@@ -41,11 +43,7 @@ def minor_kep_evaluation(
 
         # print prediction info
         prediction_info = evaluate_kep_instance_prediction(
-            instance_id=instance.id,
-            pred=instance.pred,
-            edge_index=instance.edge_index,
-            edge_weights=instance.edge_weights,
-            num_nodes=dataloader.dataset.num_nodes,
+            predicted_instance=instance,
         )
         print(f"\nPrediction info: {prediction_info}")
 
@@ -54,37 +52,43 @@ def minor_kep_evaluation(
 
 
 def evaluate_kep_instance_prediction(
-    instance_id: str,
-    pred: Tensor,
-    edge_index: Tensor,
-    edge_weights: Tensor,
-    num_nodes: int,
+    predicted_instance: Data,
 ) -> Dict[str, Any]:
     """Evaluates a predicted instance of the Kidney-Exchange Problem,
     where the prediction is edge binary classification (an edge may be in the solution or not).
     Checks if the solution is valid, how many of the solution edges are valid,
+    the number of invalid PDP nodes (PDP nodes that donate a kidney without receiving one),
     the total weight sum of the solution, and the sum of the weights not used in the solution."""
     # TODO DRY refactor (kep_loss.edges_restriction_loss)
+    pred = predicted_instance.pred
+    edge_index = predicted_instance.edge_index
+    edge_weights = predicted_instance.edge_weights
+    num_nodes = predicted_instance.x.shape[0]
     src, dst = edge_index
-    is_solution_valid = True
+
     solution_edge_indexes = torch.nonzero(pred).flatten()
     total_num_edges_in_solution = torch.sum(pred)
     total_num_edges = edge_index.shape[1]
+
+    is_solution_valid = True
+    node_degrees = {}
     num_valid_edges = {}
     num_invalid_edges = {}
     valid_edges_percentage = {}
+
     for (name, edge_node_ids) in [("src", src), ("dst", dst)]:
-        solution_node_ids = torch.index_select(
+        solution_edge_node_ids = torch.index_select(
             input=edge_node_ids, dim=0, index=solution_edge_indexes
         )
-        unique_solution_node_ids = torch.unique(solution_node_ids)
-        num_nodes_in_solution = solution_node_ids.shape[0]
+        unique_solution_node_ids = torch.unique(solution_edge_node_ids)
+        num_nodes_in_solution = solution_edge_node_ids.shape[0]
         num_unique_nodes_in_solution = unique_solution_node_ids.shape[0]
-        # TODO PDP restriction
-        #
-        # breakpoint()
+
+        # get degree considering ONLY edges in the solution
+        node_degrees[name] = degree(index=solution_edge_node_ids, num_nodes=num_nodes)
 
         # get num_valid_edges and num_invalid_edges
+        # TODO this may be optimized: use node_degrees approach instead (not yet necessary)
         num_valid_edges[name] = num_unique_nodes_in_solution
         num_invalid_edges[name] = num_nodes_in_solution - num_unique_nodes_in_solution
         valid_edges_percentage[name] = (
@@ -93,9 +97,15 @@ def evaluate_kep_instance_prediction(
         # solution is only valid if there are no invalid edges
         if num_invalid_edges[name] > 0:
             is_solution_valid = False
-        # TODO check conditional donation restriction for PDPs
-        # print("TODO : check conditional donation restriction for PDPs !!!")
 
+    # check conditional donation restriction for PDP nodes
+    pdp_node_mask = predicted_instance.x[:, 3]
+    # degree in must be >= than degree out. check if any is <
+    num_invalid_pdp_nodes = torch.sum(
+        (node_degrees["dst"] < node_degrees["src"]).to(torch.int16) * pdp_node_mask
+    )
+    if num_invalid_pdp_nodes > 0:
+        is_solution_valid = False
     # sum of all edge weights
     total_weight_sum = sum(edge_weights)
     # sum of all edge weights in solution
@@ -105,10 +115,11 @@ def evaluate_kep_instance_prediction(
 
     # return evaluation in a dict
     kep_prediction_evaluation = {
-        "instance_id": str(instance_id),
+        "instance_id": str(predicted_instance.id),
         "is_solution_valid": int(is_solution_valid),
         "total_num_edges": int(total_num_edges),
         "total_num_nodes": num_nodes,
+        "num_invalid_pdp_nodes": num_invalid_pdp_nodes,
         "num_valid_edges_src": int(num_valid_edges["src"]),
         "num_invalid_edges_src": int(num_invalid_edges["src"]),
         "valid_edges_percentage_src": float(valid_edges_percentage["src"]),
@@ -133,13 +144,8 @@ def evaluate_kep_predicted_instances(predictions_dir: str) -> pd.DataFrame:
     ):
         filepath = predicted_instances_dir / filename
         predicted_instance = torch.load(filepath)
-        num_nodes = predicted_instance.x.shape[0]
         kep_prediction_evaluation = evaluate_kep_instance_prediction(
-            instance_id=predicted_instance.id,
-            pred=predicted_instance.pred,
-            edge_index=predicted_instance.edge_index,
-            edge_weights=predicted_instance.edge_weights,
-            num_nodes=num_nodes,
+            predicted_instance=predicted_instance,
         )
         instance_eval_df = pd.DataFrame([kep_prediction_evaluation])
         eval_df = pd.concat([eval_df, instance_eval_df], ignore_index=True)
@@ -165,6 +171,8 @@ def print_evaluation_overview(eval_df: pd.DataFrame) -> None:
     print(
         f"Mean valid_edges_percentage_dst: {eval_df['valid_edges_percentage_dst'].mean():.2f}"
     )
+    # PDP conditional donation validity:
+    print(f"Mean num_invalid_pdp_nodes: {eval_df['num_invalid_pdp_nodes'].mean():.2f}")
     # edge weight information:
     print(f"Mean total_weight_sum: {eval_df['total_weight_sum'].mean():.2f}")
     print(f"Mean solution_weight_sum: {eval_df['solution_weight_sum'].mean():.2f}")
