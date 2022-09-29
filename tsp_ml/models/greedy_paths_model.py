@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import torch
-from greedy import greedy_only_paths
+from greedy import greedy
 from torch import Tensor
 from torch_geometric.data import Batch
 
@@ -20,9 +20,10 @@ class GreedyPathsModel(torch.nn.Module):
         return edge_scores
 
     def predict(self, data: Batch) -> Tensor:
-        solution = greedy_only_paths(
+        solution = greedy(
             edge_scores=data.scores,
             edge_index=data.edge_index,
             node_types=data.type[0],
+            greedy_algorithm="greedy_paths",
         )
         return solution

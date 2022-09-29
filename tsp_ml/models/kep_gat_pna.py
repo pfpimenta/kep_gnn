@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import torch
 import torch.nn.functional as F
-from greedy import greedy, greedy_only_paths
+from greedy import greedy
 from models.gnn_layers.node_wise_softmax import node_wise_softmax
 from torch_geometric.data import Batch
 from torch_geometric.nn import GATv2Conv, Linear, PNAConv
