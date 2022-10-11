@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from models.dtsp_gnn_prates import DTSP_GNN_Prates
+from models.greedy_cycles_model import GreedyCyclesModel
 from models.greedy_model import GreedyModel
 from models.greedy_paths_model import GreedyPathsModel
 from models.kep_gat_pna_ce import KEP_GAT_PNA_CE
@@ -23,4 +24,5 @@ AVAILABLE_MODELS = {
     "KEPCE_GAT_PNA": KEPCE_GAT_PNA,
     "GreedyModel": GreedyModel,
     "GreedyPathsModel": GreedyPathsModel,
+    "GreedyCyclesModel": GreedyCyclesModel,
 }

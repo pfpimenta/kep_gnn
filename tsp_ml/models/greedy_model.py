@@ -19,8 +19,14 @@ class GreedyModel(torch.nn.Module):
         breakpoint()
         return edge_scores
 
-    def predict(self, data: Batch) -> Tensor:
+    def predict(
+        self,
+        data: Batch,
+        greedy_algorithm: str = "greedy_paths",
+    ) -> Tensor:
         solution = greedy(
-            edge_scores=data.scores, edge_index=data.edge_index
-        )  # TODO does not respect PDP conditional donation restriction
+            edge_scores=data.scores,
+            edge_index=data.edge_index,
+            greedy_algorithm=greedy_algorithm,
+        )
         return solution

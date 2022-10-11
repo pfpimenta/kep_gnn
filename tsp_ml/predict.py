@@ -16,7 +16,8 @@ from tqdm import tqdm
 # TODO refactor with evaluate.py (Don't Repeat Yourself principle)
 
 DATASET_NAME = "KEP"
-TRAINED_MODEL_NAME = "2022_09_19_23h55_GreedyPathsModel"
+# TRAINED_MODEL_NAME = "2022_09_19_23h55_GreedyPathsModel"
+TRAINED_MODEL_NAME = "2022_09_29_17h31_GreedyCyclesModel"
 # TRAINED_MODEL_NAME = "2022_09_08_03h35_KEP_GAT_PNA_CE"
 BATCH_SIZE = 1
 
