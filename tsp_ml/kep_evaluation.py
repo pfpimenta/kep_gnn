@@ -9,7 +9,6 @@ import pandas as pd
 import torch
 from paths import get_eval_results_folder_path, get_predictions_folder_path
 from plot_kep import generate_kep_plot
-from torch import Tensor, tensor
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 from torch_geometric.utils.degree import degree
@@ -119,6 +118,7 @@ def evaluate_kep_instance_prediction(
         "is_solution_valid": int(is_solution_valid),
         "total_num_edges": int(total_num_edges),
         "total_num_nodes": num_nodes,
+        "total_num_edges_solution": total_num_edges_in_solution,
         "num_invalid_pdp_nodes": num_invalid_pdp_nodes,
         "num_valid_edges_src": int(num_valid_edges["src"]),
         "num_invalid_edges_src": int(num_invalid_edges["src"]),
