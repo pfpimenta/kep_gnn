@@ -9,8 +9,11 @@ from torch_geometric.utils.convert import from_networkx
 sys.path.insert(0, "/home/pimenta/tsp_ml/tsp_ml")
 from paths import get_dataset_folder_path
 
-# create example instance
-# TODO description of the instance
+""" create example instance with 4 PDP nodes in a unidirectional cycle,
+1 NDD node connected to the first PDP node (id 0),
+and 1 P node connected from the third PDP node (id 2).
+every edge has the same weight.
+"""
 kep_instance = nx.DiGraph()
 
 # add 4 PDP nodes, that will form a cycle
@@ -50,16 +53,16 @@ kep_instance.add_node(
 # add edges (no features, directed)
 num_edges = 6
 edges = [
-    (0, 1, 1),
-    (1, 2, 1),
-    (2, 3, 1),
-    (3, 0, 1),
-    (4, 0, 1),
-    (2, 5, 1),
+    (0, 1),
+    (1, 2),
+    (2, 3),
+    (3, 0),
+    (4, 0),
+    (2, 5),
 ]
 for edge in edges:
-    src_node_id, dst_node_id, weight = edge
-    kep_instance.add_edge(src_node_id, dst_node_id, edge_weights=weight)
+    src_node_id, dst_node_id = edge
+    kep_instance.add_edge(src_node_id, dst_node_id, edge_weights=1)
     # add num_edges_in and num_edges_out node features
     kep_instance.nodes[src_node_id]["num_edges_out"] += 1
     kep_instance.nodes[dst_node_id]["num_edges_in"] += 1
