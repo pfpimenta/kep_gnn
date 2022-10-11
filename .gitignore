@@ -1,6 +1,9 @@
 # virtual environment folder
 venv_tsp_gnn/
 
+# dataset property JSON files
+data/*.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
