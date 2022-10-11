@@ -9,7 +9,7 @@ from torch_geometric.utils.convert import from_networkx
 sys.path.insert(0, "/home/pimenta/tsp_ml/tsp_ml")
 from paths import get_dataset_folder_path
 
-""" create example instance with 4 PDP nodes in a unidirectional cycle,
+""" create example instance with 4 PDP nodes connected in a unidirectional cycle,
 1 NDD node connected to the first PDP node (id 0),
 and 1 P node connected from the third PDP node (id 2).
 every edge has the same weight.
