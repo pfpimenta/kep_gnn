@@ -9,8 +9,11 @@ from typing import Tuple
 import torch
 import torch_geometric
 
+
 # to allow imports from outside the tsp_ml/datasets/ package
-sys.path.insert(0, "/home/pimenta/tsp_ml/tsp_ml")
+package_folder_path = str(Path(__file__).parent.parent)
+sys.path.insert(0, package_folder_path)
+
 from dataset_utils import filter_tensors
 from paths import get_dataset_folder_path
 

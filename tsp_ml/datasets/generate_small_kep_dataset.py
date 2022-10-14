@@ -4,9 +4,11 @@
 # to be visualized clearly.
 # Also, less instances are generated, to accelerate debugging time.
 import sys
+from pathlib import Path
 
 # to allow imports from outside the tsp_ml/datasets/ package
-sys.path.insert(0, "/home/pimenta/tsp_ml/tsp_ml")
+package_folder_path = str(Path(__file__).parent.parent)
+sys.path.insert(0, package_folder_path)
 from generate_kep_dataset import generate_kep_dataset
 from paths import get_dataset_folder_path
 

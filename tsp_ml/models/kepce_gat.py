@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import torch
 import torch.nn.functional as F
-from torch_geometric.nn import GATConv, GATv2Conv, Linear
+from torch_geometric.nn import GATv2Conv, Linear
 
 
 class KEPCE_GAT(torch.nn.Module):

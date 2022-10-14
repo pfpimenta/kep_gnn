@@ -2,9 +2,12 @@
 # first, predicts the solutions on every instance of the test dataset;
 # then, compute and save evaluation for the predictions done.
 import sys
+from pathlib import Path
 
 # to allow imports from outside the tsp_ml/datasets/ package
-sys.path.insert(0, "/home/pimenta/tsp_ml/tsp_ml")
+package_folder_path = str(Path(__file__).parent.parent)
+sys.path.insert(0, package_folder_path)
+
 import torch
 from dataset_utils import get_dataset, print_dataset_information
 from kep_evaluation import kep_evaluation
@@ -13,8 +16,8 @@ from paths import get_predictions_folder_path
 from predict import predict
 
 DATASET_NAME = "KEP"
-TRAINED_MODEL_NAME = "2022_09_29_17h31_GreedyCyclesModel"
-# TRAINED_MODEL_NAME = "2022_09_19_23h55_GreedyPathsModel"
+# TRAINED_MODEL_NAME = "2022_09_29_17h31_GreedyCyclesModel"
+TRAINED_MODEL_NAME = "2022_09_19_23h55_GreedyPathsModel"
 STEP = "test_small"
 
 if __name__ == "__main__":

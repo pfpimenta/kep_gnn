@@ -9,12 +9,10 @@ from models.kepce_gat import KEPCE_GAT
 from models.kepce_gat_pna import KEPCE_GAT_PNA
 from models.kepce_gcn import KEPCE_GCN
 from models.tsp_ggcn import TSP_GGCN
-from models.tsp_ggcn_large import TSP_GGCN_large
 from models.tsp_ggcn_v4_weights import TSP_GGCN_v4_weights
 
 AVAILABLE_MODELS = {
     "TSP_GGCN": TSP_GGCN,
-    "TSP_GGCN_large": TSP_GGCN_large,
     "TSP_GGCN_v4_weights": TSP_GGCN_v4_weights,
     "DTSP_GNN_Prates": DTSP_GNN_Prates,
     "KEP_GCN": KEP_GCN,
