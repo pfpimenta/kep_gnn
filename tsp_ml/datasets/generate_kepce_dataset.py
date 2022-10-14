@@ -3,13 +3,12 @@
 # BUT with counter edges (edges that connect destination nodes to source nodes).
 # This updated KEP dataset is refered to as KEP-CE, where CE stands for Counter Edges
 import sys
+from pathlib import Path
 from typing import List, Optional
 
 import networkx as nx
 import torch
 from torch_geometric.utils.convert import from_networkx
-
-from pathlib import Path
 
 # to allow imports from outside the tsp_ml/datasets/ package
 package_folder_path = str(Path(__file__).parent.parent)

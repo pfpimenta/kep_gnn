@@ -15,11 +15,11 @@ repos:
     -   id: pretty-format-json                  # Checks that all your JSON files are "pretty" (keys sorted and indented)
     -   id: requirements-txt-fixer              # Sorts entries in requirements.txt
 -   repo: https://github.com/psf/black
-    rev: 22.6.0
+    rev: 22.10.0
     hooks:
     -   id: black                               # Python code formatter
 -   repo: https://github.com/timothycrosley/isort
-    rev: 5.4.2
+    rev: 5.10.1
     hooks:
     -   id: isort                               # Sort and organize Python imports
         args: [ -m=3 , -tc , -l 100 ]
