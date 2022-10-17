@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
+import sys
+from pathlib import Path
+
 import torch
+
+# to allow imports from outside the tsp_ml/datasets/ package
+package_folder_path = str(Path(__file__).parent.parent)
+sys.path.insert(0, package_folder_path)
 from train import DATASET_NAME, train
 
 BATCH_SIZE = 1

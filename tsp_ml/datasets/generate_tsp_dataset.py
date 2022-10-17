@@ -2,12 +2,11 @@
 # script to randomly generate NUM_SAMPLES instances of the Travelling Salesperson Problem (TSP)
 # and their optimal solution routes
 import sys
+from pathlib import Path
 
 import networkx as nx
 import torch
 from torch_geometric.utils.convert import from_networkx
-
-from pathlib import Path
 
 # to allow imports from outside the tsp_ml/datasets/ package
 package_folder_path = str(Path(__file__).parent.parent)

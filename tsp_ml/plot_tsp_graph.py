@@ -1,8 +1,9 @@
+# -*- coding: utf-8 -*-
 import networkx as nx
 import pandas as pd
 import torch
-from torch_geometric.utils.convert import to_networkx
 from paths import TSP_TEST_DATASET_FOLDER_PATH
+from torch_geometric.utils.convert import to_networkx
 
 
 def load_tsp_instance_with_prediction(

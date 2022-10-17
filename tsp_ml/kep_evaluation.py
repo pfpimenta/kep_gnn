@@ -7,7 +7,11 @@ from typing import Any, Dict
 
 import pandas as pd
 import torch
-from paths import get_eval_results_folder_path, get_predictions_folder_path
+from paths import (
+    RESULTS_FOLDER_PATH,
+    get_evaluation_folder_path,
+    get_predictions_folder_path,
+)
 from plot_kep import generate_kep_plot
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
@@ -30,7 +34,6 @@ def minor_kep_evaluation(
     # predict 3 random instances
     num_instances = len(dataloader.dataset)
     num_random_instances = 3
-    folderpath = "/home/pimenta/tsp_ml/results"  # TODO change it
     for i in range(num_random_instances):
         # randomly choose an instance
         instance_index = randint(0, num_instances - 1)
@@ -47,7 +50,9 @@ def minor_kep_evaluation(
         print(f"\nPrediction info: {prediction_info}")
 
         if save_plot:
-            generate_kep_plot(predicted_instance=instance, folderpath=folderpath)
+            generate_kep_plot(
+                predicted_instance=instance, folderpath=RESULTS_FOLDER_PATH
+            )
 
 
 def evaluate_kep_instance_prediction(
@@ -129,6 +134,10 @@ def evaluate_kep_instance_prediction(
         "total_weight_sum": float(total_weight_sum),
         "solution_weight_sum": float(solution_weight_sum),
         "not_solution_weight_sum": float(not_solution_weight_sum),
+        "solution_weight_percentage": float(solution_weight_sum)
+        / float(total_weight_sum),
+        "not_solution_weight_percentage": float(not_solution_weight_sum)
+        / float(total_weight_sum),
     }
     return kep_prediction_evaluation
 
@@ -150,6 +159,39 @@ def evaluate_kep_predicted_instances(predictions_dir: str) -> pd.DataFrame:
         instance_eval_df = pd.DataFrame([kep_prediction_evaluation])
         eval_df = pd.concat([eval_df, instance_eval_df], ignore_index=True)
     return eval_df
+
+
+def get_eval_overview_string(eval_df: pd.DataFrame) -> str:
+    eval_overview_dict = {
+        # dataset information
+        "Total number of instances": len(eval_df),
+        "Mean total_num_edges": f"{eval_df['total_num_edges'].mean():.2f}",
+        "Mean total_num_nodes": f"{eval_df['total_num_nodes'].mean():.2f}",
+        # instance validity information:
+        "Number of valid solutions": f"{eval_df['is_solution_valid'].sum()}",
+        "Valid solution percentage": f"{100*eval_df['is_solution_valid'].mean():.2f}",
+        # edge validity information:
+        "Mean num_valid_edges_src": f"{eval_df['num_valid_edges_src'].mean():.2f}",
+        "Mean num_invalid_edges_src": f"{eval_df['num_invalid_edges_src'].mean():.2f}",
+        "Mean valid_edges_percentage_src": f"{eval_df['valid_edges_percentage_src'].mean():.2f}",
+        "Mean num_valid_edges_dst": f"{eval_df['num_valid_edges_dst'].mean():.2f}",
+        "Mean num_invalid_edges_dst": f"{eval_df['num_invalid_edges_dst'].mean():.2f}",
+        f"Mean valid_edges_percentage_dst": f"{eval_df['valid_edges_percentage_dst'].mean():.2f}",
+        # PDP conditional donation validity:
+        "Mean num_invalid_pdp_nodes": f"{eval_df['num_invalid_pdp_nodes'].mean():.2f}",
+        # edge weight information:
+        "Mean total_weight_sum": f"{eval_df['total_weight_sum'].mean():.2f}",
+        "Mean solution_weight_sum": f"{eval_df['solution_weight_sum'].mean():.2f}",
+        "Mean not_solution_weight_sum": f"{eval_df['not_solution_weight_sum'].mean():.2f}",
+        "Mean solution_weight_percentage": f"{eval_df['solution_weight_percentage'].mean():.2f}",
+        "Mean not_solution_weight_percentage": f"{eval_df['not_solution_weight_percentage'].mean():.2f}",
+    }
+
+    eval_overview = ""
+    for item_name, value in eval_overview_dict.items():
+        eval_overview += f"* {item_name}: {value}\n"
+
+    return eval_overview
 
 
 def print_evaluation_overview(eval_df: pd.DataFrame) -> None:
@@ -193,17 +235,43 @@ def print_evaluation_overview(eval_df: pd.DataFrame) -> None:
     )
 
 
+def evaluation_overview(
+    step: str,
+    trained_model_name: str,
+    eval_df: pd.DataFrame,
+    save_overview: bool = True,
+    print_overview: bool = True,
+) -> None:
+    if not print_overview and not save_overview:
+        print(
+            "WARNING: There is no use of computing the evaluation_overview"
+            " if both save_overview and print_overview params are set to false"
+        )
+    eval_overview_string = get_eval_overview_string(eval_df=eval_df)
+    eval_overview_header = (
+        f"# Evaluation overview for {trained_model_name} on {step} dataset:\n"
+    )
+    eval_overview = eval_overview_header + eval_overview_string
+    if print_overview:
+        print("\n" + eval_overview)
+    if save_overview:
+        filepath = RESULTS_FOLDER_PATH / f"{trained_model_name}_{step}_eval_overview.md"
+        with open(filepath, "w") as f:
+            f.write(eval_overview)
+
+
 def kep_evaluation(
     step: str,
     trained_model_name: str,
-    print_overview: bool = True,
+    eval_overview: bool = True,
     dataset_name: str = "KEP",
 ) -> None:
     """Evaluates the predictions made by a model trained for the
     Kidney-Exchange Problem (KEP) on the test, train or val dataset
     (indicated by 'step' param).
     The evaluation results for each instance are saved in a CSV file.
-    If 'print_overview' is set to True, a summary of the evaluation is printed.
+    If 'eval_overview' is set to True, a summary of the evaluation is printed
+    and then saved as a markdown (.md) file.
     """
 
     print(
@@ -217,7 +285,7 @@ def kep_evaluation(
     eval_df = evaluate_kep_predicted_instances(predictions_dir=predictions_dir)
 
     # get output CSV filepath
-    output_dir = get_eval_results_folder_path(
+    output_dir = get_evaluation_folder_path(
         dataset_name=dataset_name,
         step=step,
         trained_model_name=trained_model_name,
@@ -227,11 +295,11 @@ def kep_evaluation(
     eval_df.to_csv(csv_filepath)
     print(f"\n\Saved results at {csv_filepath}")
 
-    # print evaluation overview (stats on the whole dataset)
-    # TODO save this in a JSON
-    if print_overview:
-        print(f"\nEvaluation overview for {trained_model_name} on {step} dataset:")
-        print_evaluation_overview(eval_df=eval_df)
+    # print and save evaluation overview (stats on the whole dataset)
+    if eval_overview:
+        evaluation_overview(
+            step=step, trained_model_name=trained_model_name, eval_df=eval_df
+        )
 
 
 if __name__ == "__main__":

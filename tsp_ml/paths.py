@@ -4,6 +4,7 @@ from typing import List
 
 PROJECT_FOLDER_PATH = pathlib.Path(__file__).parent.parent.resolve()
 TRAINED_MODELS_FOLDER_PATH = PROJECT_FOLDER_PATH / "trained_models"
+RESULTS_FOLDER_PATH = PROJECT_FOLDER_PATH / "results"
 MODEL_PERFORMANCE_FOLDER_PATH = PROJECT_FOLDER_PATH / "model_performance"
 
 
@@ -30,7 +31,7 @@ def get_predictions_folder_path(
     return folder_path
 
 
-def get_eval_results_folder_path(
+def get_evaluation_folder_path(
     dataset_name: str,
     trained_model_name: str,
     step: str = "train",

@@ -3,13 +3,12 @@
 # TODO: generate their optimal solution routes
 import random
 import sys
+from pathlib import Path
 from typing import List, Optional
 
 import networkx as nx
 import torch
 from torch_geometric.utils.convert import from_networkx
-
-from pathlib import Path
 
 # to allow imports from outside the tsp_ml/datasets/ package
 package_folder_path = str(Path(__file__).parent.parent)
@@ -140,7 +139,7 @@ def generate_kep_dataset(
 
 if __name__ == "__main__":
     # generate and save train, test, and val KEP datasets
-    for step in ["train", "test", "val"]:
+    for step in ["train", "test"]:
         kep_dataset_dir = get_dataset_folder_path(dataset_name="KEP", step=step)
         generate_kep_dataset(
             num_instances=NUM_INSTANCES,

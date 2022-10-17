@@ -22,7 +22,7 @@ repos:
     rev: 5.10.1
     hooks:
     -   id: isort                               # Sort and organize Python imports
-        args: [ -m=3 , -tc , -l 100 ]
+        args: [ -m=3 , -tc , -l 88 ]
 -   repo: local
     hooks:
       - id: jupyter-nb-clear-output             # Avoids commiting Jupyter Notebook outputs to repository

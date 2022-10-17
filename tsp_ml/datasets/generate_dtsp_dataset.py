@@ -9,7 +9,6 @@ from typing import Tuple
 import torch
 import torch_geometric
 
-
 # to allow imports from outside the tsp_ml/datasets/ package
 package_folder_path = str(Path(__file__).parent.parent)
 sys.path.insert(0, package_folder_path)
