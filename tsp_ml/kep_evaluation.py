@@ -30,8 +30,12 @@ def minor_kep_evaluation(
     dataloader: DataLoader,
     save_plot: bool = False,
 ):
+    """Uses the given model to predict on 3 random instances of the
+    given dataloader, prints the prediction info, and if the save_plot
+    flag is passed as True, generates and saves images with visualizations
+    of the 3 predictions made.
+    """
     print("\n\nMinor evaluation: predicting on 3 random instances...")
-    # predict 3 random instances
     num_instances = len(dataloader.dataset)
     num_random_instances = 3
     for i in range(num_random_instances):
@@ -162,6 +166,9 @@ def evaluate_kep_predicted_instances(predictions_dir: str) -> pd.DataFrame:
 
 
 def get_eval_overview_string(eval_df: pd.DataFrame) -> str:
+    """Returns a string with a small report of the evaluation of the
+    model's performance on the dataset.
+    """
     eval_overview_dict = {
         # dataset information
         "Total number of instances": len(eval_df),
@@ -194,47 +201,6 @@ def get_eval_overview_string(eval_df: pd.DataFrame) -> str:
     return eval_overview
 
 
-def print_evaluation_overview(eval_df: pd.DataFrame) -> None:
-    # dataset information
-    print(f"Total number of instances: {len(eval_df)}")
-    print(f"Mean total_num_edges: {eval_df['total_num_edges'].mean():.2f}")
-    print(f"Mean total_num_nodes: {eval_df['total_num_nodes'].mean():.2f}")
-    # instance validity information:
-    print(f"Number of valid solutions: {eval_df['is_solution_valid'].sum()}")
-    print(f"Valid solution percentage: {100*eval_df['is_solution_valid'].mean():.2f}%")
-    # edge validity information:
-    print(f"Mean num_valid_edges_src: {eval_df['num_valid_edges_src'].mean():.2f}")
-    print(f"Mean num_invalid_edges_src: {eval_df['num_invalid_edges_src'].mean():.2f}")
-    print(
-        f"Mean valid_edges_percentage_src: {eval_df['valid_edges_percentage_src'].mean():.2f}"
-    )
-    print(f"Mean num_valid_edges_dst: {eval_df['num_valid_edges_dst'].mean():.2f}")
-    print(f"Mean num_invalid_edges_dst: {eval_df['num_invalid_edges_dst'].mean():.2f}")
-    print(
-        f"Mean valid_edges_percentage_dst: {eval_df['valid_edges_percentage_dst'].mean():.2f}"
-    )
-    # PDP conditional donation validity:
-    print(f"Mean num_invalid_pdp_nodes: {eval_df['num_invalid_pdp_nodes'].mean():.2f}")
-    # edge weight information:
-    print(f"Mean total_weight_sum: {eval_df['total_weight_sum'].mean():.2f}")
-    print(f"Mean solution_weight_sum: {eval_df['solution_weight_sum'].mean():.2f}")
-    print(
-        f"Mean not_solution_weight_sum: {eval_df['not_solution_weight_sum'].mean():.2f}"
-    )
-    eval_df["solution_weight_percentage"] = (
-        eval_df["solution_weight_sum"] / eval_df["total_weight_sum"]
-    )
-    eval_df["not_solution_weight_percentage"] = (
-        eval_df["not_solution_weight_sum"] / eval_df["total_weight_sum"]
-    )
-    print(
-        f"Mean solution_weight_percentage: {eval_df['solution_weight_percentage'].mean():.2f}"
-    )
-    print(
-        f"Mean not_solution_weight_percentage: {eval_df['not_solution_weight_percentage'].mean():.2f}"
-    )
-
-
 def evaluation_overview(
     step: str,
     trained_model_name: str,
@@ -242,6 +208,10 @@ def evaluation_overview(
     save_overview: bool = True,
     print_overview: bool = True,
 ) -> None:
+    """Generates a small report of the evaluation of the model's performance
+    on the dataset, and then saves it in a markdown (.md) file
+    and/or prints it on the terminal.
+    """
     if not print_overview and not save_overview:
         print(
             "WARNING: There is no use of computing the evaluation_overview"
@@ -255,7 +225,7 @@ def evaluation_overview(
     if print_overview:
         print("\n" + eval_overview)
     if save_overview:
-        filepath = RESULTS_FOLDER_PATH / f"{trained_model_name}_{step}_eval_overview.md"
+        filepath = RESULTS_FOLDER_PATH / f"{trained_model_name}_{step}.md"
         with open(filepath, "w") as f:
             f.write(eval_overview)
 
