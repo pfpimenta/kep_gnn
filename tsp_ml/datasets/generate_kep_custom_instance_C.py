@@ -12,15 +12,16 @@ sys.path.insert(0, package_folder_path)
 
 from paths import get_dataset_folder_path
 
-""" create example instance with 4 PDP nodes connected in a unidirectional cycle,
+""" create custom example instance
+with 7 PDP nodes connected in the shape of an 8,
 1 NDD node connected to the first PDP node (id 0),
-and 1 P node connected from the third PDP node (id 2).
+and 1 P node connected from the last PDP node (id 6);
 every edge has the same weight.
 """
 kep_instance = nx.DiGraph()
 
-# add 4 PDP nodes, that will form a cycle
-for node_id in range(4):
+# add 7 PDP nodes, that will form a cycle
+for node_id in range(7):
     kep_instance.add_node(
         node_id,
         type="PDP",
@@ -34,7 +35,7 @@ for node_id in range(4):
 
 # add a NDD node connecting to a PDP node
 kep_instance.add_node(
-    4,
+    7,
     type="NDD",
     num_edges_in=0,
     num_edges_out=0,
@@ -44,7 +45,7 @@ kep_instance.add_node(
 )
 # and a P node connected from a PDP node
 kep_instance.add_node(
-    5,
+    8,
     type="P",
     num_edges_in=0,
     num_edges_out=0,
@@ -57,11 +58,15 @@ kep_instance.add_node(
 num_edges = 6
 edges = [
     (0, 1),
-    (1, 2),
-    (2, 3),
-    (3, 0),
-    (4, 0),
-    (2, 5),
+    (1, 3),
+    (3, 2),
+    (2, 0),
+    (3, 4),
+    (4, 6),
+    (6, 5),
+    (5, 3),
+    (7, 0),
+    (6, 8),
 ]
 for edge in edges:
     src_node_id, dst_node_id = edge
@@ -88,7 +93,7 @@ kep_instance_pyg_graph.id = instance_id
 
 # breakpoint()
 # save KEP instance on output_dir
-kep_dataset_dir = get_dataset_folder_path(dataset_name="KEP", step="test_small")
+kep_dataset_dir = get_dataset_folder_path(dataset_name="KEP", step="custom")
 filename = f"kep_instance_{instance_id}.pt"
 filepath = kep_dataset_dir / filename
 torch.save(kep_instance_pyg_graph, filepath)
