@@ -1,6 +1,9 @@
 # virtual environment folder
 venv_tsp_gnn/
 
+# VS code config files
+.vscode/*
+
 # dataset property JSON files
 data/*.json
 
