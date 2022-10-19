@@ -61,7 +61,11 @@ def greedy(
     node_types: Tensor,
     greedy_algorithm: str = "greedy_paths",
 ) -> Tensor:
-    """TODO description"""
+    """TODO description
+    greedy_algorithm, by default, is set to 'greedy_paths' its options are:
+    'greedy_cycles_and_paths', 'greedy_paths', 'greedy_cycles',
+    'greedy_1_path', and 'greedy_1_cycle'.
+    """
     if greedy_algorithm == "greedy_cycles_and_paths":
         solution = greedy_cycles_and_paths(
             edge_scores=edge_scores,
@@ -114,7 +118,8 @@ def greedy_cycles(
     node_types: Tensor,
 ) -> Tensor:
     # TODO description: returns a solution formed only by kidney exchange cycles
-    edge_scores = edge_scores[:, 0] / (edge_scores[:, 1] + EPSILON)
+    # edge_scores = edge_scores[:, 0] / (edge_scores[:, 1] + EPSILON)
+    edge_scores = edge_scores[:, 0] - edge_scores[:, 1]
     solution = torch.zeros_like(edge_scores)
 
     # select only PDP->PDP edges
@@ -132,19 +137,27 @@ def greedy_cycles(
     )
     is_pdp_edge_mask = is_pdp_src_edge_mask * is_pdp_dst_edge_mask
     edge_scores = edge_scores * is_pdp_edge_mask
-    oi = edge_scores * is_pdp_edge_mask
 
     # add cycles to the solution until there are no more valid edges
     # coming from an NDD node
+    num_cycles_found = 0
     while (edge_scores == torch.zeros_like(edge_scores)).all() == False:
         solution, edge_scores, dead_end = greedy_choose_cycle(
             edge_index=edge_index,
             edge_scores=edge_scores,
             current_solution=solution,
         )
-        breakpoint()
+        # print("debug -")
+        # if torch.min(solution) == -1:
+        #     breakpoint() # DEBUG
         if dead_end:
+            # print("DEBUG dead_end was found.")
             break
+        else:
+            num_cycles_found += 1
+    # TODO DEBUG descobrir pq ta saindo solucoes invalidas
+    # print(f"num_cycles_found: {num_cycles_found}")
+    # breakpoint()
     return solution
 
 
@@ -221,6 +234,16 @@ def greedy_get_next_edge(
     return current_solution, current_node_id
 
 
+def debug_print_current_solution(
+    edge_index: Tensor,
+    edge_scores: Tensor,
+    current_solution: Tensor,
+) -> None:
+    print(f"DEBUG\n- edge_index:\n{edge_index}")
+    print(f"- edge_scores: {edge_scores}")
+    print(f"- current_solution: {current_solution}\n")
+
+
 def greedy_choose_cycle(
     edge_index: Tensor,
     edge_scores: Tensor,
@@ -242,9 +265,6 @@ def greedy_choose_cycle(
     current_node_id = dst[chosen_edge_index]
     current_solution[chosen_edge_index] = 1
     cycle_node_ids.append(first_node_id.item())
-    print(
-        f"DEBUG first edge: id: {chosen_edge_index}, nodes: {edge_index[:, chosen_edge_index]}"
-    )
 
     # mask edges that have become unavailable:
     # the ones that have first_node_id as src
@@ -252,7 +272,6 @@ def greedy_choose_cycle(
 
     # get max score out-edge of next node in the cycle.
     # if next node is already in the cycle, close it
-    # breakpoint()
     dead_end = False
     while not current_node_id in cycle_node_ids:
         cycle_node_ids.append(current_node_id.item())
@@ -260,10 +279,13 @@ def greedy_choose_cycle(
         current_node_edge_mask = (src == current_node_id).to(int)
         next_edge_scores = edge_scores * current_node_edge_mask
 
+        # mask edges that become unavailable:
+        # the ones that have current_node_id as src
+        edge_scores[src == current_node_id] = 0
+
         # if unable to finish cycle (a dead end was reached), return unchanged solition
         dead_end = (next_edge_scores == torch.zeros_like(next_edge_scores)).all()
         if dead_end:
-            print("\n\n\nDEBUG dead_end !\n\n")
             dead_end = True
             return unchanged_solution, unchanged_edge_scores, dead_end
 
@@ -271,29 +293,35 @@ def greedy_choose_cycle(
         chosen_edge_index = torch.argmax(next_edge_scores)
         current_solution[chosen_edge_index] = 1
         current_node_id = edge_index[1, chosen_edge_index]
-        print(
-            f"DEBUG chosen edge: id: {chosen_edge_index}, nodes: {edge_index[:, chosen_edge_index]}"
-        )
 
-        # mask edges that have become unavailable:
-        # the ones that have current_node_id as src
-        edge_scores[src == current_node_id] = 0
-        # breakpoint()
+    # mask edges that have become unavailable:
+    # the ones that have current_node_id as src
+    edge_scores[src == current_node_id] = 0
 
-    breakpoint()
-    # TODO
+    # close cycle: delete nodes left before the node where the cycle ended
+    cycle_beggining = cycle_node_ids.index(current_node_id)
+    nodes_before_cycle = cycle_node_ids[:cycle_beggining]
+    nodes_before_cycle_mask = torch.zeros_like(current_solution)
+    for node_id in nodes_before_cycle:
+        node_mask = (src == node_id).to(int)
+        node_mask += (dst == node_id).to(int)
+        nodes_before_cycle_mask += node_mask
 
-    # breakpoint()
-    # close cycle
-    # add last edge
+    nodes_before_cycle_mask = nodes_before_cycle_mask.to(bool).to(int)  # only 0s and 1s
+    nodes_before_cycle_mask = 1 - nodes_before_cycle_mask
+    # if torch.min(nodes_before_cycle_mask) == -1:
+    #     print("DEBUG torch.min(nodes_before_cycle_mask)")
+    #     breakpoint() # DEBUG
+    current_solution = current_solution * nodes_before_cycle_mask
+    # if torch.min(current_solution) == -1:
+    #     breakpoint() # DEBUG
+
+    # add last edge ? acho q nao precisa
     # current_node_edge_mask = (src == current_node_id).to(int)
     # next_edge_scores = edge_scores * (1 - current_node_edge_mask)
     # chosen_edge_index = torch.argmax(next_edge_scores)
     # current_solution[chosen_edge_index] = 1
     # current_node_id = edge_index[1, chosen_edge_index]
-
-    # TODO
-    # remove nodes added before the one where the loop closed
 
     return current_solution, edge_scores, dead_end
 
