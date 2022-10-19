@@ -2,6 +2,7 @@
 # Script with functions to evaluate KEP predictions
 import os
 import sys
+import time
 from random import randint
 from typing import Any, Dict
 
@@ -99,9 +100,13 @@ def evaluate_kep_instance_prediction(
         # TODO this may be optimized: use node_degrees approach instead (not yet necessary)
         num_valid_edges[name] = num_unique_nodes_in_solution
         num_invalid_edges[name] = num_nodes_in_solution - num_unique_nodes_in_solution
-        valid_edges_percentage[name] = (
-            num_valid_edges[name] / total_num_edges_in_solution
-        )
+        # TODO
+        if total_num_edges_in_solution == 0:
+            valid_edges_percentage[name] = 1
+        else:
+            valid_edges_percentage[name] = (
+                num_valid_edges[name] / total_num_edges_in_solution
+            )
         # solution is only valid if there are no invalid edges
         if num_invalid_edges[name] > 0:
             is_solution_valid = False
@@ -114,6 +119,7 @@ def evaluate_kep_instance_prediction(
     )
     if num_invalid_pdp_nodes > 0:
         is_solution_valid = False
+        print(f"DEBUG invalid solution! id: {predicted_instance.id}")
     # sum of all edge weights
     total_weight_sum = sum(edge_weights)
     # sum of all edge weights in solution
@@ -205,6 +211,7 @@ def evaluation_overview(
     step: str,
     trained_model_name: str,
     eval_df: pd.DataFrame,
+    eval_time: float,
     save_overview: bool = True,
     print_overview: bool = True,
 ) -> None:
@@ -220,6 +227,7 @@ def evaluation_overview(
     eval_overview_string = get_eval_overview_string(eval_df=eval_df)
     eval_overview_header = (
         f"# Evaluation overview for {trained_model_name} on {step} dataset:\n"
+        f"* Total evaluation time: {eval_time:.2f} seconds\n"
     )
     eval_overview = eval_overview_header + eval_overview_string
     if print_overview:
@@ -247,12 +255,16 @@ def kep_evaluation(
     print(
         f"\n\nEvaluating {trained_model_name}'s predictions on the {step} KEP dataset"
     )
+    # measure total time to evaluate
+    start = time.time()
     predictions_dir = get_predictions_folder_path(
         dataset_name=dataset_name,
         step=step,
         trained_model_name=trained_model_name,
     )
     eval_df = evaluate_kep_predicted_instances(predictions_dir=predictions_dir)
+    end = time.time()
+    elapsed_time = end - start
 
     # get output CSV filepath
     output_dir = get_evaluation_folder_path(
@@ -268,7 +280,10 @@ def kep_evaluation(
     # print and save evaluation overview (stats on the whole dataset)
     if eval_overview:
         evaluation_overview(
-            step=step, trained_model_name=trained_model_name, eval_df=eval_df
+            step=step,
+            trained_model_name=trained_model_name,
+            eval_df=eval_df,
+            eval_time=elapsed_time,
         )
 
 
