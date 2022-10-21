@@ -42,7 +42,7 @@ class KEP_GAT_PNA_CE(torch.nn.Module):
         )
         self.pna_conv_ce = PNAConv(
             in_channels=node_features_size[0],
-            out_channels=int((node_features_size[1]) / 2),
+            out_channels=int(node_features_size[1] / 2),
             aggregators=aggregators,
             scalers=scalers,
             deg=pna_deg,
@@ -166,5 +166,6 @@ class KEP_GAT_PNA_CE(torch.nn.Module):
             edge_scores=data.scores,
             edge_index=data.edge_index,
             node_types=data.type[0],
+            greedy_algorithm="greedy_cycles",
         )
         return solution

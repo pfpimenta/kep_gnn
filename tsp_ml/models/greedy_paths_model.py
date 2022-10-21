@@ -20,10 +20,17 @@ class GreedyPathsModel(torch.nn.Module):
         return edge_scores
 
     def predict(self, data: Batch) -> Tensor:
+        if isinstance(data.type[0], list):
+            # TODO re generate dataset,
+            # make sure everything is consistent,
+            # and then delete this if else
+            node_types = data.type[0]
+        else:
+            node_types = data.type
         solution = greedy(
             edge_scores=data.scores,
             edge_index=data.edge_index,
-            node_types=data.type[0],
+            node_types=node_types,
             greedy_algorithm="greedy_paths",
         )
         return solution

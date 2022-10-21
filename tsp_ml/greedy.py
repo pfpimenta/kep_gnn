@@ -234,22 +234,13 @@ def greedy_get_next_edge(
     return current_solution, current_node_id
 
 
-def debug_print_current_solution(
-    edge_index: Tensor,
-    edge_scores: Tensor,
-    current_solution: Tensor,
-) -> None:
-    print(f"DEBUG\n- edge_index:\n{edge_index}")
-    print(f"- edge_scores: {edge_scores}")
-    print(f"- current_solution: {current_solution}\n")
-
-
 def greedy_choose_cycle(
     edge_index: Tensor,
     edge_scores: Tensor,
     current_solution: Tensor,
 ) -> Tuple[Tensor, Tensor]:
-    # TODO
+    # TODO description
+    # TODO fix extremely rare invalid solution:
     src, dst = edge_index
     cycle_node_ids = []
 

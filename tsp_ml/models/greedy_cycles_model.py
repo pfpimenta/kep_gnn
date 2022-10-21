@@ -20,13 +20,17 @@ class GreedyCyclesModel(torch.nn.Module):
         return edge_scores
 
     def predict(self, data: Batch) -> Tensor:
-        print(f"DEBUG data.id: {data.id}")
+        if isinstance(data.type[0], list):
+            # TODO re generate dataset,
+            # make sure everything is consistent,
+            # and then delete this if else
+            node_types = data.type[0]
+        else:
+            node_types = data.type
         solution = greedy(
             edge_scores=data.scores,
             edge_index=data.edge_index,
-            node_types=data.type[0],
+            node_types=node_types,
             greedy_algorithm="greedy_cycles",
         )
-        if torch.sum(solution) > 0:
-            print(f"- - - - -DEBUG found something! data.id: {data.id}")
         return solution
