@@ -119,7 +119,7 @@ def evaluate_kep_instance_prediction(
     )
     if num_invalid_pdp_nodes > 0:
         is_solution_valid = False
-        print(f"DEBUG invalid solution! id: {predicted_instance.id}")
+        print(f"Found an invalid solution!   id: {predicted_instance.id}")
     # sum of all edge weights
     total_weight_sum = sum(edge_weights)
     # sum of all edge weights in solution
@@ -132,9 +132,9 @@ def evaluate_kep_instance_prediction(
         "instance_id": str(predicted_instance.id),
         "is_solution_valid": int(is_solution_valid),
         "total_num_edges": int(total_num_edges),
-        "total_num_nodes": num_nodes,
-        "total_num_edges_solution": total_num_edges_in_solution,
-        "num_invalid_pdp_nodes": num_invalid_pdp_nodes,
+        "total_num_nodes": int(num_nodes),
+        "total_num_edges_solution": int(total_num_edges_in_solution),
+        "num_invalid_pdp_nodes": int(num_invalid_pdp_nodes),
         "num_valid_edges_src": int(num_valid_edges["src"]),
         "num_invalid_edges_src": int(num_invalid_edges["src"]),
         "valid_edges_percentage_src": float(valid_edges_percentage["src"]),
