@@ -119,7 +119,7 @@ def greedy_cycles(
 ) -> Tensor:
     # TODO description: returns a solution formed only by kidney exchange cycles
     # edge_scores = edge_scores[:, 0] / (edge_scores[:, 1] + EPSILON)
-    edge_scores = edge_scores[:, 0] - edge_scores[:, 1]
+    edge_scores = edge_scores[:, 0]
     solution = torch.zeros_like(edge_scores)
 
     # select only PDP->PDP edges
