@@ -4,6 +4,9 @@ venv_tsp_gnn/
 # VS code config files
 .vscode/*
 
+# Model performance result overview files
+results/*.md
+
 # dataset property JSON files
 data/*.json
 
