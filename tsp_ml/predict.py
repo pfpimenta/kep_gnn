@@ -2,6 +2,7 @@
 # this script loads a model and a dataset, predicts, and saves predictions in a CSV
 import pathlib
 import sys
+import time
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -112,6 +113,7 @@ def predict(
     If 'save_as_pt' is True, each instance is predicted separately
     and each prediction is saved with the rest of the instance data in
     a .PT file."""
+    start = time.time()
 
     set_torch_seed()
 
@@ -172,6 +174,10 @@ def predict(
                 pred=pred,
                 truth=batch.y,
             )
+
+    end = time.time()
+    elapsed_time = end - start
+    print(f"Total training time: {elapsed_time} seconds")
 
 
 if __name__ == "__main__":

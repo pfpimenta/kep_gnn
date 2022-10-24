@@ -73,21 +73,31 @@ def training_step(
     optimizer.zero_grad()
     # predict
     batch = batch.to(device)
-    scores = model(batch).to(torch.float32)
+    batch.scores = model(batch).to(torch.float32)
+    pred = model.predict(batch).to(torch.float32)
+
+    if isinstance(batch.type[0], list):
+        # TODO re generate dataset,
+        # make sure everything is consistent,
+        # and then delete this if else
+        node_types = batch.type[0]
+    else:
+        node_types = batch.type
     # calculate loss
     if dataset_name == "TSP" or dataset_name == "DTSP":
         label = one_hot(batch.y).to(torch.float32)
-        loss = loss_function(scores, label)
+        loss = loss_function(batch.scores, label)
     elif dataset_name == "KEP":
         loss = loss_function(
-            scores,
+            batch.scores,
             batch.edge_weights,
             batch.edge_index,
-            batch.type,
+            pred=pred,
+            node_types=node_types,
         )
     elif dataset_name == "KEPCE":
         loss = loss_function(
-            scores,
+            batch.scores,
             batch.edge_weights,
             batch.edge_index,
             batch.counter_edge,
@@ -96,7 +106,7 @@ def training_step(
     loss.backward()
     optimizer.step()
     # save batch loss in AverageMeter object
-    numInputs = scores.view(-1, 1).size(0)
+    numInputs = batch.scores.view(-1, 1).size(0)
     epoch_loss.update(loss.detach().item(), numInputs)
     return epoch_loss
 
@@ -147,6 +157,7 @@ def get_training_report(
     loss_function: torch.nn.modules.loss._Loss,
 ):
     """Returns a dictionary containing information about the current training run"""
+    # TODO add training predict method (greedy_paths, greedy_cycles, etc)
     loss_dict = dict(loss_function.state_dict())
     loss_params = {k: v.tolist() for k, v in loss_dict.items()}
     model_architecture_name = model.__class__.__name__
@@ -195,6 +206,7 @@ def train_model(
             optimizer=optimizer,
             loss_function=loss_function,
             minor_eval=minor_eval,
+            # breakpoint()
         )
         if validation_dataloader is not None and ep % 5 == 0:
             validation_loss = validation_epoch(

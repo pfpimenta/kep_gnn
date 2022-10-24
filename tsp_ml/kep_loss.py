@@ -46,7 +46,7 @@ def unsupervised_kep_loss(
     pred: Tensor,
     edge_weights: Tensor,
 ):
-    """sum of weights of edges NOT IN predicted solution over
+    """sum of weights of ALL edges over
     sum of weights of edges IN predicted solution.
     Args:
         pred: the predicted class for each edge
@@ -65,6 +65,7 @@ def unsupervised_kep_loss(
 
 def kep_loss(
     scores: Tensor,
+    pred: Tensor,
     edge_weights: Tensor,
     edge_index: Tensor,
     node_types: Tensor,
@@ -73,30 +74,18 @@ def kep_loss(
     """Computes the custom KEP loss for a given edge-wise prediction.
     Args:
         scores: the predicted score for each edge
+        pred: the predicted class for each edge (0s and 1s)
         edge_weights: the priority weight pre-assigned to each edge
         edge_index: the pytorch_geometric edge_index tensor (see documentation)
+        node_types: the type of each node ('PDP', 'NDD', or 'P')
         counter_edges: tensor 1 if the corresponding edge is a counter_edge
             i.e. if it was put there artificially for passing messages
             from dst to src nodes, 0 otherwise
     """
-    if counter_edges is not None:
-        # disregard counter edges when calculating the loss
-        edge_weights = edge_weights * (1 - counter_edges)
-        if len(scores.shape) == 2:
-            # scores for both positive and negative class:
-            # counter_edges mask should mask both scores
-            counter_edges = counter_edges
-        else:
-            # scores only for positive class
-            scores = scores * (1 - counter_edges)
-
-    # pred = torch.argmax(scores, dim=1)  # TODO test loss using scores
-    pred = greedy(edge_scores=scores, edge_index=edge_index, node_types=node_types)
-
     kep_loss = unsupervised_kep_loss(pred=pred, edge_weights=edge_weights)
 
     # add regularization terms modelling restrictions
-    src, dst = edge_index
+    # src, dst = edge_index
     # outcoming_edges_loss = edges_restriction_loss(
     #     pred=pred,
     #     edge_node_ids=src,
@@ -113,18 +102,6 @@ def kep_loss(
         # + INCOMING_EDGE_NODES_COEFFICIENT * incoming_edges_loss
     )
 
-    # print(f"\n\nDEBUG outcoming_edges_loss: {outcoming_edges_loss}")
-    # print(f"DEBUG incoming_edges_loss: {incoming_edges_loss}")
-    # print(f"DEBUG kep_loss: {kep_loss}")
-    # print(f"DEBUG loss: {loss}")
-
-    # print(f"DEBUG solution_weight_sum: {solution_weight_sum}")
-    # # print(f"DEBUG not_solution_weight_sum: {not_solution_weight_sum}")
-    # print(f"DEBUG total_solution_weight_sum: {total_solution_weight_sum}")
-    # print(
-    #     # f"DEBUG not_solution_weight_sum / (solution_weight_sum + 0.0000001): {not_solution_weight_sum / (solution_weight_sum + 0.0000001)}"
-    # )
-    # print(f"DEBUG loss: {loss}")
     loss = Variable(loss, requires_grad=True)
     return loss
 
@@ -140,6 +117,7 @@ class KEPLoss(_Loss):
         scores: Tensor,
         edge_weights: Tensor,
         edge_index: Tensor,
+        pred: Tensor,
         node_types: Tensor,
         counter_edges: Optional[Tensor] = None,
     ) -> Tensor:
@@ -148,5 +126,6 @@ class KEPLoss(_Loss):
             edge_weights=edge_weights,
             edge_index=edge_index,
             node_types=node_types,
+            pred=pred,
             counter_edges=counter_edges,
         )

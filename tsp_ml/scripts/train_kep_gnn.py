@@ -10,8 +10,8 @@ sys.path.insert(0, package_folder_path)
 from train import DATASET_NAME, train
 
 BATCH_SIZE = 1
-NUM_EPOCHS = 10
-LEARNING_RATE = 0.01
+NUM_EPOCHS = 1
+LEARNING_RATE = 0.001
 MODEL_NAME = "KEP_GAT_PNA_CE"
 DATASET_NAME = "KEP"
 MINOR_EVAL = True

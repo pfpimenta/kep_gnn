@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import torch
 import torch.nn.functional as F
+from torch import Tensor
+from torch_geometric.data import Batch
 from torch_geometric.nn import GATv2Conv, Linear
 
 
@@ -105,3 +107,20 @@ class KEPCE_GAT(torch.nn.Module):
         edge_scores = self.fully_connected_edges_2(edge_features)
 
         return edge_scores
+
+    def predict(self, data: Batch) -> Tensor:
+        scores = data.scores
+        if data.counter_edges is not None:
+            # disregard counter edges
+            counter_edges_mask = 1 - data.counter_edges
+            if len(scores.shape) == 2:
+                # scores for both positive and negative class:
+                # counter_edges mask should mask both scores
+                scores[:, 0] = scores[:, 0] * (1 - counter_edges_mask)
+                scores[:, 1] = scores[:, 1] * (1 - counter_edges_mask)
+            else:
+                # scores only for positive class
+                scores = scores * (1 - counter_edges_mask)
+        # compute predictions based on scores
+        pred = torch.argmax(scores, dim=1)  # TODO try greedy algorithm
+        return pred
