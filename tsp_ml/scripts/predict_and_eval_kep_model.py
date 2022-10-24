@@ -16,9 +16,13 @@ from paths import get_predictions_folder_path
 from predict import predict
 
 DATASET_NAME = "KEP"
-# TRAINED_MODEL_NAME = "2022_09_29_17h31_GreedyCyclesModel"
-TRAINED_MODEL_NAME = "2022_09_19_23h55_GreedyPathsModel"
-STEP = "test_small"
+# TRAINED_MODEL_NAME = "2022_09_19_23h55_GreedyPathsModel"
+# TRAINED_MODEL_NAME = "2022_09_22_02h42_KEP_GAT_PNA_CE" # c/ greedy paths
+# TRAINED_MODEL_NAME = "2022_10_17_19h17_GreedyCyclesModel"
+# TRAINED_MODEL_NAME = "2022_10_21_09h31_KEP_GAT_PNA_CE" # c/ greedy cycles
+# TRAINED_MODEL_NAME = "2022_10_21_23h55_KEP_GAT_PNA_CE" # c/ greedy cycles
+TRAINED_MODEL_NAME = "2022_10_24_03h18_KEP_GAT_PNA_CE"  # treinado c greedy cycles
+STEP = "test"
 
 if __name__ == "__main__":
     ## first, predicts the solutions on every instance of the test dataset,
