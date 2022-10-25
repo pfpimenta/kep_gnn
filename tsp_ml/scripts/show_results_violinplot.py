@@ -12,7 +12,7 @@ import matplotlib.pylab as plt
 import pandas as pd
 import seaborn as sns
 from matplotlib import rcParams
-from paths import get_evaluation_folder_path
+from paths import RESULTS_FOLDER_PATH, get_evaluation_folder_path
 
 # configure matplotlib to automatically adjust the plot size
 rcParams.update({"figure.autolayout": True})
@@ -32,7 +32,7 @@ for name in trained_model_names:
         step="test",
     )
     csv_filepath = eval_folder_path / "test_eval.csv"
-    print(f"Reading csv: {csv_filepath} ...")
+    print(f"Reading csv: {csv_filepath}")
     df = pd.read_csv(csv_filepath)
     df["trained_model_name"] = name
     df = df[["trained_model_name", "solution_weight_sum"]]
@@ -47,4 +47,6 @@ plot = sns.violinplot(
 plt.xticks(rotation=30)
 plt.gcf().subplots_adjust(bottom=0.15)
 fig = plot.get_figure()
-fig.savefig("kep_results_violinplot.png")
+filename = "kep_results_violinplot.png"
+filepath = RESULTS_FOLDER_PATH / filename
+fig.savefig(filepath)
