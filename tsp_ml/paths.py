@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import pathlib
-from typing import List
+from typing import Optional
 
 PROJECT_FOLDER_PATH = pathlib.Path(__file__).parent.parent.resolve()
 TRAINED_MODELS_FOLDER_PATH = PROJECT_FOLDER_PATH / "trained_models"
@@ -33,17 +33,21 @@ def get_predictions_folder_path(
 
 def get_evaluation_folder_path(
     dataset_name: str,
-    trained_model_name: str,
+    trained_model_name: Optional[str] = None,
     step: str = "train",
 ) -> pathlib.Path:
-    folder_path = (
-        PROJECT_FOLDER_PATH
-        / "data"
-        / dataset_name
-        / "evaluation"
-        / trained_model_name
-        / step
-    )
+    if trained_model_name is None:
+        # return base folder for evaluation data
+        folder_path = PROJECT_FOLDER_PATH / "data" / dataset_name / "evaluation"
+    else:
+        folder_path = (
+            PROJECT_FOLDER_PATH
+            / "data"
+            / dataset_name
+            / "evaluation"
+            / trained_model_name
+            / step
+        )
     folder_path.mkdir(parents=True, exist_ok=True)
     return folder_path
 

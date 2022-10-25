@@ -157,7 +157,6 @@ def get_training_report(
     loss_function: torch.nn.modules.loss._Loss,
 ):
     """Returns a dictionary containing information about the current training run"""
-    # TODO add training predict method (greedy_paths, greedy_cycles, etc)
     loss_dict = dict(loss_function.state_dict())
     loss_params = {k: v.tolist() for k, v in loss_dict.items()}
     model_architecture_name = model.__class__.__name__
@@ -166,6 +165,8 @@ def get_training_report(
         "num_epochs": num_epochs,
         "model_architecture_name": model_architecture_name,
         "model_architecture": str(model),
+        "prediction_method": model.predict_method,
+        "batch_size": train_dataloader.batch_size,
         "device": str(device),
         "optimizer": optimizer.__class__.__name__,
         "optimizer_params": optimizer.state_dict()["param_groups"],

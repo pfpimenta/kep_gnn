@@ -12,8 +12,11 @@ class KEP_GAT_PNA_CE(torch.nn.Module):
     """GNN for KEP dataset that uses GAT and PNA message passing layers
     from src to dst nodes, and from dst to src nodes."""
 
-    def __init__(self, pna_deg: Tensor):
+    def __init__(self, pna_deg: Tensor, predict_method: str = "greedy_paths"):
         super().__init__()
+        self.predict_method = predict_method
+        # TODO check if given predicted_method is valid
+
         # binary classification -> one score for each class
         output_size = 2  # TODO consider 3 options: output_size==1 OR output_size==2 OR softmax on this dim as well
         # node feature sizes for each layer
@@ -169,10 +172,11 @@ class KEP_GAT_PNA_CE(torch.nn.Module):
             node_types = data.type[0]
         else:
             node_types = data.type
+        # TODO make simple edge classification (argmax) available
         solution = greedy(
             edge_scores=data.scores,
             edge_index=data.edge_index,
             node_types=node_types,
-            greedy_algorithm="greedy_cycles",
+            greedy_algorithm=self.predict_method,
         )
         return solution
