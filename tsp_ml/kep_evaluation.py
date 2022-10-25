@@ -189,15 +189,21 @@ def get_eval_overview_string(eval_df: pd.DataFrame) -> str:
         "Mean valid_edges_percentage_src": f"{eval_df['valid_edges_percentage_src'].mean():.2f}",
         "Mean num_valid_edges_dst": f"{eval_df['num_valid_edges_dst'].mean():.2f}",
         "Mean num_invalid_edges_dst": f"{eval_df['num_invalid_edges_dst'].mean():.2f}",
-        f"Mean valid_edges_percentage_dst": f"{eval_df['valid_edges_percentage_dst'].mean():.2f}",
+        "Mean valid_edges_percentage_dst": f"{eval_df['valid_edges_percentage_dst'].mean():.2f}",
         # PDP conditional donation validity:
         "Mean num_invalid_pdp_nodes": f"{eval_df['num_invalid_pdp_nodes'].mean():.2f}",
         # edge weight information:
         "Mean total_weight_sum": f"{eval_df['total_weight_sum'].mean():.2f}",
         "Mean solution_weight_sum": f"{eval_df['solution_weight_sum'].mean():.2f}",
+        "Std solution_weight_sum": f"{eval_df['solution_weight_sum'].std():.2f}",
+        "Min solution_weight_sum": f"{eval_df['solution_weight_sum'].min():.2f}",
+        "Max solution_weight_sum": f"{eval_df['solution_weight_sum'].max():.2f}",
         "Mean not_solution_weight_sum": f"{eval_df['not_solution_weight_sum'].mean():.2f}",
-        "Mean solution_weight_percentage": f"{eval_df['solution_weight_percentage'].mean():.2f}",
-        "Mean not_solution_weight_percentage": f"{eval_df['not_solution_weight_percentage'].mean():.2f}",
+        "Mean solution_weight_percentage": f"{eval_df['solution_weight_percentage'].mean():.4f}",
+        "Std solution_weight_percentage": f"{eval_df['solution_weight_percentage'].std():.4f}",
+        "Min solution_weight_percentage": f"{eval_df['solution_weight_percentage'].min():.4f}",
+        "Max solution_weight_percentage": f"{eval_df['solution_weight_percentage'].max():.4f}",
+        "Mean not_solution_weight_percentage": f"{eval_df['not_solution_weight_percentage'].mean():.4f}",
     }
 
     eval_overview = ""
