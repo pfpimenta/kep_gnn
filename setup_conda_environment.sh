@@ -1,3 +1,4 @@
+# Check for cuda capabilities
 if command -v nvidia-smi; then
     if nvidia-smi | grep 'CUDA Version: 11.[345]'; then
         install_type='cudatoolkit=11.3'
@@ -29,7 +30,6 @@ else
     install_method='conda'
 fi
 
-#mamba install -n venv_kep_gnn -c conda-forge -c pyg -c pytorch pyg pytorch=1.11 torchvision=0.12 torchaudio=0.11 ${install_type} networkx matplotlib ipykernel pre-commit
 command ${install_method} install -n venv_kep_gnn -c pytorch -c pyg -c conda-forge pyg pytorch=1.11 torchvision=0.12 torchaudio=0.11 ${install_type} networkx matplotlib ipykernel pre-commit
 
 echo "done"
