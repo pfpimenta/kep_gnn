@@ -20,10 +20,10 @@ conda create --force -n venv_kep_gnn
 
 if command -v mamba; then
     if echo ${install_type} | grep 'cpuonly'; then
+        # Mamba fails to solve cpuonly pyg https://github.com/mamba-org/mamba/issues/1542
         install_method='conda'
     else 
         install_method='mamba'
-        #mamba install -n venv_kep_gnn -c conda-forge -c pyg -c pytorch pyg pytorch=1.11 torchvision=0.12 torchaudio=0.11 ${install_type} networkx matplotlib ipykernel pre-commit
     fi
 else
     install_method='conda'
