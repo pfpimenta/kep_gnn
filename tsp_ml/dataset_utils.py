@@ -47,9 +47,12 @@ def get_dataset(dataset_name: str, step: str) -> Dataset:
 def print_dataset_information(dataset: Dataset) -> None:
     dataset_size = len(dataset)
     print(f"Dataset size: {dataset_size}")
+    print(f"Dataset total num_nodes: {dataset.num_nodes}")
     print(f"Dataset total num_edges: {dataset.num_edges}")
     avg_num_edges = int(dataset.num_edges) / int(dataset_size)
     print(f"Mean num_edges per graph: {avg_num_edges}")
+    print(f"Dataset maximum_in_degree: {dataset.maximum_in_degree}")
+    print(f"Dataset in_degree_histogram: {dataset.in_degree_histogram}")
 
 
 # TODO consider moving this function somewhere else
