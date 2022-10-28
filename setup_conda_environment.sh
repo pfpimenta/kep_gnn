@@ -10,7 +10,7 @@ if command -v nvidia-smi; then
         install_type='cudatoolkit=10.3'
     elif nvidia-smi | grep 'CUDA Version: 10.[23456789]'; then
         install_type='cudatoolkit=10.3'
-    else 
+    else
         install_type='cpuonly'
     fi
 else
@@ -23,7 +23,7 @@ if command -v mamba; then
     if echo ${install_type} | grep 'cpuonly'; then
         # Mamba fails to solve cpuonly pyg https://github.com/mamba-org/mamba/issues/1542
         install_method='conda'
-    else 
+    else
         install_method='mamba'
     fi
 else

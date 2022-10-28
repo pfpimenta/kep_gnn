@@ -50,8 +50,6 @@ def get_unavailable_edge_mask(chosen_edge_index: int, edge_index: Tensor) -> Ten
         unavailable_edge_mask += (node_list == node_id).to(int)
     # eliminate doubles
     unavailable_edge_mask[unavailable_edge_mask == 2] = 1
-    # # repeat once along dim=1 to have the same shape as edge_index
-    # unavailable_edge_mask = unavailable_edge_mask.repeat(2, 1)
     return unavailable_edge_mask
 
 
@@ -147,17 +145,11 @@ def greedy_cycles(
             edge_scores=edge_scores,
             current_solution=solution,
         )
-        # print("debug -")
-        # if torch.min(solution) == -1:
-        #     breakpoint() # DEBUG
         if dead_end:
             # print("DEBUG dead_end was found.")
             break
         else:
             num_cycles_found += 1
-    # TODO DEBUG descobrir pq ta saindo solucoes invalidas
-    # print(f"num_cycles_found: {num_cycles_found}")
-    # breakpoint()
     return solution
 
 
@@ -240,7 +232,6 @@ def greedy_choose_cycle(
     current_solution: Tensor,
 ) -> Tuple[Tensor, Tensor]:
     # TODO description
-    # TODO fix extremely rare invalid solution:
     src, dst = edge_index
     cycle_node_ids = []
 
@@ -297,22 +288,9 @@ def greedy_choose_cycle(
         node_mask = (src == node_id).to(int)
         node_mask += (dst == node_id).to(int)
         nodes_before_cycle_mask += node_mask
-
     nodes_before_cycle_mask = nodes_before_cycle_mask.to(bool).to(int)  # only 0s and 1s
     nodes_before_cycle_mask = 1 - nodes_before_cycle_mask
-    # if torch.min(nodes_before_cycle_mask) == -1:
-    #     print("DEBUG torch.min(nodes_before_cycle_mask)")
-    #     breakpoint() # DEBUG
     current_solution = current_solution * nodes_before_cycle_mask
-    # if torch.min(current_solution) == -1:
-    #     breakpoint() # DEBUG
-
-    # add last edge ? acho q nao precisa
-    # current_node_edge_mask = (src == current_node_id).to(int)
-    # next_edge_scores = edge_scores * (1 - current_node_edge_mask)
-    # chosen_edge_index = torch.argmax(next_edge_scores)
-    # current_solution[chosen_edge_index] = 1
-    # current_node_id = edge_index[1, chosen_edge_index]
 
     return current_solution, edge_scores, dead_end
 
