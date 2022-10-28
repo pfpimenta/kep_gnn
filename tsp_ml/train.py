@@ -2,6 +2,7 @@
 # This script contains functions for training a model
 import sys
 import time
+from datetime import datetime
 from typing import Optional
 
 import torch
@@ -21,6 +22,7 @@ LEARNING_RATE = 0.005
 MODEL_NAME = "TSP_GGCN_large"
 DATASET_NAME = "TSP"
 MINOR_EVAL = True  # set to True to print extra eval information during training
+PREDICT_METHOD = "greedy_paths"
 
 
 def validation_step(
@@ -172,6 +174,7 @@ def get_training_report(
         "optimizer_params": optimizer.state_dict()["param_groups"],
         "loss_function": loss_function.__class__.__name__,
         "loss_params": loss_params,
+        "training_start_time": str(datetime.now()),
     }
     return training_report
 
@@ -187,7 +190,6 @@ def train_model(
     minor_eval: bool = False,
 ) -> torch.nn.Module:
     # TODO description
-    print("\nTraining..")
     training_report = get_training_report(
         num_epochs=num_epochs,
         model=model,
@@ -197,6 +199,9 @@ def train_model(
         loss_function=loss_function,
     )
     start = time.time()
+    print(
+        f"\nTraining started at {datetime.now()} with the following params: {training_report}"
+    )
     for ep in range(1, num_epochs + 1):
         optimizer.zero_grad()
         print(f"Epoch [{ep}/{num_epochs}]")
@@ -246,13 +251,36 @@ def get_loss_function(dataset_name: str, train_dataloader: Optional[DataLoader] 
 def train(
     device: torch.device,
     model_name: str = "TSP_GGCN",
-    dataset_name: str = "TSP",
+    predict_method: Optional[str] = None,
+    dataset_name: str = "KEP",
     batch_size: int = 10,
     num_epochs: int = 10,
     learning_rate: float = 0.01,
     use_validation: bool = True,
     minor_eval: bool = False,
 ):
+    """
+    TODO description:
+    Trains a model....
+    Args:
+        device: torch object selecting the device
+            where the training will be run (CPU or CUDA).
+        model_name: the name of the model class to be trained.
+            It must be one of the classes of the files inside tsp.models
+            ('KEP_GAT_PNA_CE', 'KEP_GCN', etc).
+        predict_method: name of the method with which the model
+            will compute the binary predictions.
+        dataset_name: the name of the dataset ('KEP', 'TSP', or 'DTSP')
+        batch_size: the number of instances to be loaded at each time
+            a training step (forward + backward pass) occurs.
+        num_epochs: number of epochs (which is a pass through
+            the whole dataset) that the training will last.
+        learning_rate: learning rate to be used in training by the optimizer.
+        use_validation: if True, runs a validation after each epoch
+        minor_eval: if True, runs the kep_evaluation.minor_kep_evaluation
+            function at each n predictions. It predicts on 3 random instances
+            and prints on screen the evaluation results for each of them.
+    """
     set_torch_seed()
 
     # initialize dataloaders
@@ -266,6 +294,7 @@ def train(
     model = get_model(
         model_name=model_name,
         dataset=train_dataloader.dataset,
+        predict_method=predict_method,
     )
     adam_optimizer = torch.optim.Adam(
         model.parameters(), lr=learning_rate, weight_decay=5e-4

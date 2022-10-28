@@ -21,6 +21,7 @@ DATASET_NAME = "KEP"
 TRAINED_MODEL_NAME = "2022_09_29_17h31_GreedyCyclesModel"
 # TRAINED_MODEL_NAME = "2022_09_08_03h35_KEP_GAT_PNA_CE"
 BATCH_SIZE = 1
+PREDICT_METHOD = "greedy_paths"
 
 
 def delete_predictions_CSV(filepath: pathlib.Path):
@@ -194,7 +195,11 @@ if __name__ == "__main__":
         print_dataset_information(dataset=dataset)
 
         # load model
-        model = load_model(trained_model_name=TRAINED_MODEL_NAME, dataset=dataset)
+        model = load_model(
+            trained_model_name=TRAINED_MODEL_NAME,
+            dataset=dataset,
+            predict_method=PREDICT_METHOD,
+        )
 
         print(f"\n\nPredicting on the {step} dataset")
         predictions_dir = get_predictions_folder_path(

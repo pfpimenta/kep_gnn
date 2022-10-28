@@ -7,7 +7,7 @@ import torch
 # to allow imports from outside the tsp_ml/datasets/ package
 package_folder_path = str(Path(__file__).parent.parent)
 sys.path.insert(0, package_folder_path)
-from train import DATASET_NAME, train
+from train import DATASET_NAME, PREDICT_METHOD, train
 
 BATCH_SIZE = 1
 NUM_EPOCHS = 1
@@ -15,8 +15,8 @@ LEARNING_RATE = 0.001
 MODEL_NAME = "KEP_GAT_PNA_CE"
 DATASET_NAME = "KEP"
 MINOR_EVAL = True
+PREDICT_METHOD = "greedy_paths"
 
-# TODO save training params with model
 
 if __name__ == "__main__":
     # select either CPU or GPU
@@ -32,4 +32,5 @@ if __name__ == "__main__":
         learning_rate=LEARNING_RATE,
         use_validation=False,
         minor_eval=MINOR_EVAL,
+        predict_method=PREDICT_METHOD,
     )

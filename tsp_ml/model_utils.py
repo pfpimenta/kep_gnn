@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 from datetime import datetime
+from optparse import Option
 from typing import Any, Dict, Optional
 
 import torch
@@ -45,9 +46,12 @@ def load_model(
     device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
     print_training_report: bool = True,
     dataset: Optional[Dataset] = None,
+    predict_method: Optional[str] = None,
 ) -> torch.nn.Module:
     model_name = trained_model_name[17:]
-    model = get_model(model_name=model_name, dataset=dataset).to(device)
+    model = get_model(
+        model_name=model_name, dataset=dataset, predict_method=predict_method
+    ).to(device)
     model_filepath = TRAINED_MODELS_FOLDER_PATH / f"{trained_model_name}/model.pt"
     print(f"...Loading model from file {model_filepath}")
     model.load_state_dict(torch.load(model_filepath, map_location=device))
@@ -76,16 +80,23 @@ def get_trained_model_name(
 def get_model(
     model_name: str = "TSP_GGCN",
     dataset: Optional[Dataset] = None,
+    predict_method: Optional[str] = None,
 ) -> torch.nn.Module:
     """Returns an initialized model object"""
     try:
         Model = AVAILABLE_MODELS[model_name]
     except KeyError:
-        raise ValueError(f"No model named '{model_name}' found.")
+        raise ValueError(
+            f"No model named '{model_name}' found."
+            f"Currently available models: {list(AVAILABLE_MODELS.keys())}"
+        )
+    model_args = {}
     if "PNA" in model_name:
-        model = Model(pna_deg=dataset.in_degree_histogram)
-    else:
-        model = Model()
+        model_args["pna_deg"] = dataset.in_degree_histogram
+    if predict_method:
+        model_args["predict_method"] = predict_method
+    model = Model(**model_args)
+    print(f"DEBUG model.predict_method: {model.predict_method}\n\n\n")
     return model
 
 
