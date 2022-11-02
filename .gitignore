@@ -7,6 +7,9 @@ venv_tsp_gnn/
 # Model performance result overview files
 results/*.md
 
+# Plots saved
+results/*.png
+
 # dataset property JSON files
 data/*.json
 
