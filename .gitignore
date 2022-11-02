@@ -13,6 +13,12 @@ results/*.png
 # dataset property JSON files
 data/*.json
 
+# pytorch files
+data/**/*.pt
+
+# networkx gml files
+data/**/*.g
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

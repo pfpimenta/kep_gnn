@@ -30,6 +30,6 @@ else
     install_method='conda'
 fi
 
-command ${install_method} install -n venv_kep_gnn -c pytorch -c pyg -c conda-forge pyg pytorch=1.11 torchvision=0.12 torchaudio=0.11 ${install_type} networkx matplotlib ipykernel pre-commit
+command ${install_method} install -n venv_kep_gnn -c pytorch -c pyg -c conda-forge pyg pytorch=1.11 torchvision=0.12 torchaudio=0.11 ${install_type} networkx matplotlib ipykernel pre-commit pandas
 
 echo "done"
