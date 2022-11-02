@@ -96,7 +96,6 @@ def get_model(
     if predict_method:
         model_args["predict_method"] = predict_method
     model = Model(**model_args)
-    print(f"DEBUG model.predict_method: {model.predict_method}\n\n\n")
     return model
 
 

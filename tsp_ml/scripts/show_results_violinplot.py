@@ -22,7 +22,8 @@ trained_model_names = [
     "2022_10_17_19h17_GreedyCyclesModel",  # GreedyCycles
     "2022_10_21_23h55_KEP_GAT_PNA_CE",  # GNN + GreedyCycles
     "2022_09_19_23h55_GreedyPathsModel",  # GreedyPaths
-    "2022_09_22_02h42_KEP_GAT_PNA_CE",  # GNN + GreedyPaths
+    # "2022_09_22_02h42_KEP_GAT_PNA_CE",  # GNN + GreedyPaths
+    "2022_10_25_16h24_KEP_GAT_PNA_CE",  # GNN + GreedyPaths
 ]
 df_list = []
 for name in trained_model_names:

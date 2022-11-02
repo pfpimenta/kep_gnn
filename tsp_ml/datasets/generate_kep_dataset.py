@@ -100,8 +100,8 @@ def generate_kep_dataset(
     output_dir: str,
     node_types: List[str] = NODE_TYPES,
     node_type_distribution: List[float] = NODE_TYPE_DISTRIBUTION,
-    num_nodes: Optional[int] = None,
-    num_edges: Optional[int] = None,
+    num_nodes: int = NUM_NODES,
+    num_edges: int = NUM_EDGES,
     add_node_features: bool = True,
 ):
     """Generates 'num_instances' instances of the Kidney-Exchange Problem

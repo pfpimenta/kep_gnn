@@ -1,9 +1,18 @@
 # -*- coding: utf-8 -*-
 """ script to measure how much the dataset changes between 2 random generations
 (in this case, train and test datasets)"""
+import sys
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
+
+# to allow imports from outside the tsp_ml/datasets/ package
+package_folder_path = str(Path(__file__).parent.parent)
+sys.path.insert(0, package_folder_path)
+
+
 from dataset_utils import get_dataset
 
 
