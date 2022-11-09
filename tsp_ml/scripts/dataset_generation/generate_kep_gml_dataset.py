@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+# TODO refactor this with
+# scripts/dataset_generation/generate_kep_dataset.py
+# and datasets/kep_dataset_generation.py
+
 # script to randomly generate instances of the Kidney Exchange Problem (KEP)
 # TODO: generate their optimal solution routes
 import random
@@ -11,7 +15,7 @@ import torch
 from torch_geometric.utils.convert import from_networkx
 
 # to allow imports from outside the tsp_ml/datasets/ package
-package_folder_path = str(Path(__file__).parent.parent)
+package_folder_path = str(Path(__file__).parent.parent.parent)
 sys.path.insert(0, package_folder_path)
 
 from paths import get_dataset_folder_path
@@ -100,9 +104,10 @@ def generate_kep_dataset(
     output_dir: str,
     node_types: List[str] = NODE_TYPES,
     node_type_distribution: List[float] = NODE_TYPE_DISTRIBUTION,
-    num_nodes: int = NUM_NODES,
-    num_edges: int = NUM_EDGES,
+    num_nodes: Optional[int] = None,
+    num_edges: Optional[int] = None,
     add_node_features: bool = True,
+    gml_output_dir: Optional[str] = None,
 ):
     """Generates 'num_instances' instances of the Kidney-Exchange Problem
     and saves them in .PT files inside 'output_dir'."""
@@ -135,12 +140,19 @@ def generate_kep_dataset(
         filepath = output_dir / filename
         torch.save(kep_instance_pyg_graph, filepath)
         print(f"[{i+1}/{num_instances}] Saved {filepath}")
+        if gml_output_dir is not None:
+            gmlfname = f"kep_instance_{instance_id}.g"
+            gmlfpath = gml_output_dir / gmlfname
+            nx.write_gml(kep_instance_nx_graph, gmlfpath)
 
 
 if __name__ == "__main__":
     # generate and save train, test, and val KEP datasets
     for step in ["train", "test"]:
         kep_dataset_dir = get_dataset_folder_path(dataset_name="KEP", step=step)
+        gml_kep_dataset_dir = get_dataset_folder_path(
+            dataset_name="KEP", step=f"{step}_gml"
+        )
         generate_kep_dataset(
             num_instances=NUM_INSTANCES,
             num_nodes=NUM_NODES,
@@ -149,4 +161,5 @@ if __name__ == "__main__":
             node_type_distribution=NODE_TYPE_DISTRIBUTION,
             add_node_features=True,
             output_dir=kep_dataset_dir,
+            gml_output_dir=gml_kep_dataset_dir,
         )

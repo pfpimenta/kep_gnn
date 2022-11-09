@@ -11,8 +11,10 @@ import torch
 from torch_geometric.utils.convert import from_networkx
 
 # to allow imports from outside the tsp_ml/datasets/ package
-package_folder_path = str(Path(__file__).parent.parent)
+package_folder_path = str(Path(__file__).parent.parent.parent)
 sys.path.insert(0, package_folder_path)
+
+# TODO:
 from datasets.generate_kep_dataset import generate_kep_instance
 from paths import get_dataset_folder_path
 
