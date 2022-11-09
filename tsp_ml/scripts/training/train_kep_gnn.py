@@ -14,8 +14,9 @@ NUM_EPOCHS = 1
 LEARNING_RATE = 0.001
 MODEL_NAME = "KEP_GAT_PNA_CE"
 DATASET_NAME = "KEP"
-MINOR_EVAL = True
+MINOR_EVAL = True  # TODO delete this?
 PREDICT_METHOD = "greedy_paths"
+VALIDATION_PERIOD = 1000
 
 
 if __name__ == "__main__":
@@ -30,7 +31,8 @@ if __name__ == "__main__":
         batch_size=BATCH_SIZE,
         num_epochs=NUM_EPOCHS,
         learning_rate=LEARNING_RATE,
-        use_validation=False,
+        use_validation=True,
+        validation_period=VALIDATION_PERIOD,
         minor_eval=MINOR_EVAL,
         predict_method=PREDICT_METHOD,
     )
