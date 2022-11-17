@@ -3,12 +3,13 @@ import torch
 import torch.nn.functional as F
 from greedy import greedy
 from models.gnn_layers.node_wise_softmax import node_wise_softmax
+from models.kep_gnn import KEP_GNN
 from torch import Tensor
 from torch_geometric.data import Batch
 from torch_geometric.nn import GATv2Conv, Linear, PNAConv
 
 
-class KEP_GAT_PNA_CE(torch.nn.Module):
+class KEP_GAT_PNA_CE(KEP_GNN):
     """GNN for KEP dataset that uses GAT and PNA message passing layers
     from src to dst nodes, and from dst to src nodes."""
 
@@ -163,20 +164,3 @@ class KEP_GAT_PNA_CE(torch.nn.Module):
             edge_scores=edge_scores[:, 1], node_indexes=src, num_nodes=num_nodes
         )
         return edge_scores
-
-    def predict(self, data: Batch) -> Tensor:
-        if isinstance(data.type[0], list):
-            # TODO re generate dataset,
-            # make sure everything is consistent,
-            # and then delete this if else
-            node_types = data.type[0]
-        else:
-            node_types = data.type
-        # TODO make simple edge classification (argmax) available
-        solution = greedy(
-            edge_scores=data.scores,
-            edge_index=data.edge_index,
-            node_types=node_types,
-            greedy_algorithm=self.predict_method,
-        )
-        return solution
