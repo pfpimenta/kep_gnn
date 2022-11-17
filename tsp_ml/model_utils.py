@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
 from datetime import datetime
-from optparse import Option
 from typing import Any, Dict, Optional
 
 import torch
@@ -19,25 +18,45 @@ def save_dict_to_json(dict: Dict[str, Any], json_filepath: str):
         file.write(json_string)
 
 
-def save_model(model: torch.nn.Module, training_report: Dict[str, Any]):
+# def save_model(model: torch.nn.Module, training_report: Dict[str, Any]):
+def save_model(model: torch.nn.Module) -> None:
     """Creates a folder and saves in it the model state and a JSON file with
     information about the training process"""
-    training_timestamp = datetime.now().strftime("%Y_%m_%d_%Hh%M")
-    trained_model_name = get_trained_model_name(
-        model=model, training_timestamp=training_timestamp
-    )
-    training_report["training_timestamp"] = training_timestamp
-    training_report["trained_model_name"] = trained_model_name
-    # create folder
-    trained_model_dir = TRAINED_MODELS_FOLDER_PATH / f"{trained_model_name}"
-    trained_model_dir.mkdir(parents=True, exist_ok=True)
+    training_end_time = datetime.now().strftime("%Y_%m_%d_%Hh%M")
+    model.training_report["training_end_time"] = training_end_time
     # save model state dict
+    trained_model_dir = model.trained_model_dir
     trained_model_filepath = trained_model_dir / "model.pt"
     torch.save(model.state_dict(), trained_model_filepath)
     print(f"Saved {trained_model_filepath}")
     # save training information JSON
-    json_filepath = trained_model_dir / "training_info.json"
-    save_dict_to_json(dict=training_report, json_filepath=json_filepath)
+    json_filepath = trained_model_dir / "training_report.json"
+    save_dict_to_json(dict=model.training_report, json_filepath=json_filepath)
+    print(f"Saved {json_filepath}")
+
+
+def save_model_checkpoint(
+    model: torch.nn.Module,
+    epoch: int,
+    step: int,
+) -> None:
+    """TODO description"""
+    # save model checkpoint
+    checkpoint_dir = model.trained_model_dir / "checkpoints" / f"e{epoch}_s{step}"
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    trained_model_filepath = checkpoint_dir / "model.pt"
+    torch.save(model.state_dict(), trained_model_filepath)
+    print(f"Saved {trained_model_filepath}")
+    # prepare training information JSON
+    checkpoint_training_report = model.training_report
+    checkpoint_training_report["epoch"] = epoch
+    checkpoint_training_report["step"] = step
+    checkpoint_training_report["checkpoint_time"] = datetime.now().strftime(
+        "%Y_%m_%d_%Hh%M"
+    )
+    # save training information JSON
+    json_filepath = checkpoint_dir / "training_report.json"
+    save_dict_to_json(dict=checkpoint_training_report, json_filepath=json_filepath)
     print(f"Saved {json_filepath}")
 
 
@@ -57,24 +76,12 @@ def load_model(
     model.load_state_dict(torch.load(model_filepath, map_location=device))
     if print_training_report:
         training_report_filepath = (
-            TRAINED_MODELS_FOLDER_PATH / f"{trained_model_name}/training_info.json"
+            TRAINED_MODELS_FOLDER_PATH / f"{trained_model_name}/training_report.json"
         )
         with open(training_report_filepath, "r") as file:
             training_report = json.load(file)
             print(f"Training report:\n{training_report}")
     return model
-
-
-def get_trained_model_name(
-    model: torch.nn.Module, training_timestamp: Optional[str] = None
-) -> str:
-    """Generates a model name based on the name of the architecture and
-    the current date and time"""
-    model_architecture_name = model.__class__.__name__
-    if training_timestamp is None:
-        training_timestamp = datetime.now().strftime("%Y_%m_%d_%Hh%M")
-    model_name = f"{training_timestamp}_{model_architecture_name}"
-    return model_name
 
 
 def get_model(
