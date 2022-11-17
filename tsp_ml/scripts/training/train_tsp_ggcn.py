@@ -5,7 +5,7 @@ from pathlib import Path
 import torch
 
 # to allow imports from outside the tsp_ml/datasets/ package
-package_folder_path = str(Path(__file__).parent.parent)
+package_folder_path = str(Path(__file__).parent.parent.parent)
 sys.path.insert(0, package_folder_path)
 from train import DATASET_NAME, train
 
