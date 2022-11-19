@@ -18,11 +18,12 @@ repos:
     rev: 22.10.0
     hooks:
     -   id: black                               # Python code formatter
+        args: [-l 88]
 -   repo: https://github.com/timothycrosley/isort
     rev: 5.10.1
     hooks:
     -   id: isort                               # Sort and organize Python imports
-        args: [ -m=3 , -tc , -l 88 ]
+        args: [ -m=3 , -tc , -l 88, -p "black"]
 -   repo: local
     hooks:
       - id: jupyter-nb-clear-output             # Avoids commiting Jupyter Notebook outputs to repository
