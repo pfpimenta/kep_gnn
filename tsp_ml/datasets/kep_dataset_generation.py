@@ -6,6 +6,16 @@ import networkx as nx
 import torch
 from torch_geometric.utils.convert import from_networkx
 
+NUM_INSTANCES = {"train": 10000, "test": 10000, "val": 100}
+NUM_NODES = 300
+NUM_EDGES = 5500
+NODE_TYPES = [
+    "NDD",  # non-directed donors
+    "PDP",  # patient-donor pair
+    "P",  # pacient without a pair
+]
+NODE_TYPE_DISTRIBUTION = [0.05, 0.9, 0.05]
+
 
 def generate_kep_instance(
     num_nodes: int,
