@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+import numpy as np
 import torch
 from models import AVAILABLE_MODELS
 from paths import TRAINED_MODELS_FOLDER_PATH
@@ -39,6 +40,9 @@ def save_model_checkpoint(
     model: torch.nn.Module,
     epoch: int,
     step: int,
+    evaluation_overview: str,
+    performance_dict: Dict[str, Any],
+    training_loss_list: np.ndarray,
 ) -> None:
     """TODO description"""
     # save model checkpoint
@@ -55,9 +59,25 @@ def save_model_checkpoint(
         "%Y_%m_%d_%Hh%M"
     )
     # save training information JSON
-    json_filepath = checkpoint_dir / "training_report.json"
-    save_dict_to_json(dict=checkpoint_training_report, json_filepath=json_filepath)
-    print(f"Saved {json_filepath}")
+    report_json_filepath = checkpoint_dir / "training_report.json"
+    save_dict_to_json(
+        dict=checkpoint_training_report, json_filepath=report_json_filepath
+    )
+    print(f"Saved {report_json_filepath}")
+    # save performance JSON
+    performance_json_filepath = checkpoint_dir / "performance.json"
+    save_dict_to_json(dict=performance_dict, json_filepath=performance_json_filepath)
+    print(f"Saved {performance_json_filepath}")
+    # save evaluation overview
+    eval_overview_filepath = checkpoint_dir / "eval_overview.md"
+    with open(eval_overview_filepath, "w") as f:
+        f.write(evaluation_overview)
+    print(f"Saved {eval_overview_filepath}")
+    # save training loss list
+    training_loss_list_filepath = checkpoint_dir / "training_loss_list.npy"
+    with open(training_loss_list_filepath, "wb") as file:
+        np.save(file, training_loss_list)
+    print(f"Saved {training_loss_list}")
 
 
 def load_model(

@@ -171,7 +171,12 @@ def evaluate_kep_predicted_instances(predictions_dir: str) -> pd.DataFrame:
     return eval_df
 
 
-def get_eval_overview_string(eval_df: pd.DataFrame) -> str:
+def get_eval_overview_string(
+    eval_df: pd.DataFrame,
+    trained_model_name: str,
+    step: str,
+    eval_time: float,
+) -> str:
     """Returns a string with a small report of the evaluation of the
     model's performance on the dataset.
     """
@@ -205,10 +210,23 @@ def get_eval_overview_string(eval_df: pd.DataFrame) -> str:
         "Max solution_weight_percentage": f"{eval_df['solution_weight_percentage'].max():.4f}",
         "Mean not_solution_weight_percentage": f"{eval_df['not_solution_weight_percentage'].mean():.4f}",
     }
+    # add loss to overview, if available
+    if "loss" in eval_df.columns:
+        eval_overview_dict["Mean loss per instance"] = f"{eval_df['loss'].mean():.2f}"
+        eval_overview_dict["Std loss per instance"] = f"{eval_df['loss'].std():.2f}"
+        eval_overview_dict["Min loss per instance"] = f"{eval_df['loss'].min():.2f}"
+        eval_overview_dict["Max loss per instance"] = f"{eval_df['loss'].max():.2f}"
 
     eval_overview = ""
     for item_name, value in eval_overview_dict.items():
         eval_overview += f"* {item_name}: {value}\n"
+
+    # add header
+    eval_overview_header = (
+        f"# Evaluation overview for {trained_model_name} on {step} dataset:\n"
+        f"* Total evaluation time: {eval_time:.2f} seconds\n"
+    )
+    eval_overview = eval_overview_header + eval_overview
 
     return eval_overview
 
@@ -230,18 +248,19 @@ def evaluation_overview(
             "WARNING: There is no use of computing the evaluation_overview"
             " if both save_overview and print_overview params are set to false"
         )
-    eval_overview_string = get_eval_overview_string(eval_df=eval_df)
-    eval_overview_header = (
-        f"# Evaluation overview for {trained_model_name} on {step} dataset:\n"
-        f"* Total evaluation time: {eval_time:.2f} seconds\n"
+    eval_overview = get_eval_overview_string(
+        eval_df=eval_df,
+        trained_model_name=trained_model_name,
+        step=step,
+        eval_time=eval_time,
     )
-    eval_overview = eval_overview_header + eval_overview_string
     if print_overview:
         print("\n" + eval_overview)
     if save_overview:
         filepath = RESULTS_FOLDER_PATH / f"{trained_model_name}_{step}.md"
         with open(filepath, "w") as f:
             f.write(eval_overview)
+        print(f"Saved {filepath}")
 
 
 def kep_evaluation(
