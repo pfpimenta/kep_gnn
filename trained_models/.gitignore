@@ -2,3 +2,7 @@
 *.pt
 # do not commit the training reports
 *.json
+# do not commit the checkpoint performance overviews
+*.md
+# do not commit the checkpoint performance overviews
+*.npy

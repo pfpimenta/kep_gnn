@@ -3,3 +3,9 @@
 
 # do not commit the saved PT format graphs into the repo
 *.pt
+
+# do not commit dataset_properties JSON files
+*.json
+
+# do not commit evaluation CSV files
+*.csv
