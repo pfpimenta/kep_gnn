@@ -5,10 +5,11 @@ import time
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+import numpy as np
+import pandas as pd
 import torch
-from average_meter import AverageMeter
 from dataset_utils import get_dataloaders
-from kep_evaluation import minor_kep_evaluation
+from kep_evaluation import evaluate_kep_instance_prediction, get_eval_overview_string
 from kep_loss import KEPLoss
 from model_utils import get_model, save_model, save_model_checkpoint, set_torch_seed
 from torch import Tensor
@@ -27,8 +28,7 @@ VALIDATION_PERIOD = (
     1000  # how many batch predictions will be executed between each validation
 )
 
-# TODO remove:
-MINOR_EVAL = False  # set to True to print extra eval information during training
+# TODO refatorar, botar umas funcoes pra fora desse arquivo
 
 
 def validation_step(
@@ -36,52 +36,48 @@ def validation_step(
     device: torch.device,
     batch: Batch,
     loss_function: torch.nn.modules.loss._Loss,
-    epoch_loss: AverageMeter,
     dataset_name: str,
-) -> AverageMeter:
+) -> Dict[str, Any]:
     # predict
     batch = batch.to(device)
     batch.scores = model(batch).to(torch.float32)
     batch.pred = model.predict(batch).to(torch.float32)
-
     # calculate loss
     loss = calculate_loss(
         batch=batch, dataset_name=dataset_name, loss_function=loss_function
     )
-
-    # save batch loss in AverageMeter object
-    numInputs = batch.scores.view(-1, 1).size(0)
-    epoch_loss.update(loss.detach().item(), numInputs)
-    # TODO botar algo do minor eval aqui
-    return epoch_loss
+    # evaluate predictions
+    prediction_info = evaluate_kep_instance_prediction(predicted_instance=batch)
+    # save batch loss in prediction_info dict
+    prediction_info["loss"] = loss.detach().item()
+    return prediction_info
 
 
 def validation_epoch(
-    epoch: int,
-    step: int,
     model: torch.nn.Module,
     device: torch.device,
     dataloader: DataLoader,
     loss_function: torch.nn.modules.loss._Loss,
     dataset_name: str,
-) -> float:
-    epoch_loss = AverageMeter()
+) -> pd.DataFrame:
+    # epoch_loss = AverageMeter() # TODO delete this
     # TODO criar outra classe que guarda TODAS as loss
     # TODO ter um objeto desse pra validation e outro pra train
     # TODO metodos: avg loss per edge, avg per instance, avg per epoch
     # TODO usar isso pra fazer early stopping
     model.eval()  # set the model to evaluation mode (freeze weights)
+    eval_df = pd.DataFrame()
     for _, batch in enumerate(tqdm(dataloader, desc="Validation", file=sys.stdout)):
-        epoch_loss = validation_step(
+        prediction_info = validation_step(
             model=model,
             device=device,
             batch=batch,
             loss_function=loss_function,
-            epoch_loss=epoch_loss,
             dataset_name=dataset_name,
         )
-    save_model_checkpoint(model=model, epoch=epoch, step=step)
-    return epoch_loss.average
+        instance_eval_df = pd.DataFrame([prediction_info])
+        eval_df = pd.concat([eval_df, instance_eval_df], ignore_index=True)
+    return eval_df
 
 
 def calculate_loss(
@@ -120,37 +116,93 @@ def training_step(
     batch: Batch,
     optimizer: torch.optim.Optimizer,
     loss_function: torch.nn.modules.loss._Loss,
-    epoch_loss: AverageMeter,
     dataset_name: str,
-) -> AverageMeter:
+) -> float:
     model.train()  # set the model to training mode
     optimizer.zero_grad()
+
     # predict
     batch = batch.to(device)
     batch.scores = model(batch).to(torch.float32)
     batch.pred = model.predict(batch).to(torch.float32)
 
+    # TODO re generate dataset,
+    # make sure everything is consistent,
+    # and then delete this if else
     if isinstance(batch.type[0], list):
         # print(f"DEBUG batch.type is LIST OF LISTS: {batch.type}")
         # -> cai quase sempre aqui! 99.85% das instancias
-        # TODO re generate dataset,
-        # make sure everything is consistent,
-        # and then delete this if else
         batch.type = batch.type[0]
     else:
-        print(f"DEBUG batch.type is a SIMPLE LIST: {batch.type}")
+        print(f"\n\n\n\n\nDEBUG batch.type is a SIMPLE LIST: {batch.type}\n\n\n")
         # -> 0.15% das instancias
-        # node_types = batch.type
+        # DEBUG: save problematic instance IDs
+        filepath = f"{batch.id[0]}.txt"
+        torch.save(batch[0], filepath)
     loss = calculate_loss(
         batch=batch, dataset_name=dataset_name, loss_function=loss_function
     )
+    # TODO os pesos não tao atualizando! wtf
     # backpropagate
     loss.backward()
     optimizer.step()
-    # save batch loss in AverageMeter object
-    numInputs = batch.scores.view(-1, 1).size(0)
-    epoch_loss.update(loss.detach().item(), numInputs)
-    return epoch_loss
+    return loss.detach().item()
+
+
+def get_performance_dict(
+    checkpoint_training_loss_list: np.ndarray,
+    validation_eval_df: pd.DataFrame,
+) -> Dict[str, Any]:
+    performance_dict = {
+        "mean_training_loss": np.mean(checkpoint_training_loss_list),
+        "std_training_loss": np.std(checkpoint_training_loss_list),
+        "min_training_loss": np.min(checkpoint_training_loss_list),
+        "max_training_loss": np.max(checkpoint_training_loss_list),
+    }
+    # mean/std/min/max validation loss (per instance)
+    performance_dict.update(
+        {
+            "mean_validation_loss": validation_eval_df["loss"].mean(),
+            "std_validation_loss": validation_eval_df["loss"].std(),
+            "min_validation_loss": validation_eval_df["loss"].min(),
+            "max_validation_loss": validation_eval_df["loss"].max(),
+        }
+    )
+    # mean/std/min/max validation solution_weight_sum (per instance)
+    performance_dict.update(
+        {
+            "mean_validation_solution_weight_sum": validation_eval_df[
+                "solution_weight_sum"
+            ].mean(),
+            "std_validation_solution_weight_sum": validation_eval_df[
+                "solution_weight_sum"
+            ].std(),
+            "min_validation_solution_weight_sum": validation_eval_df[
+                "solution_weight_sum"
+            ].min(),
+            "max_validation_solution_weight_sum": validation_eval_df[
+                "solution_weight_sum"
+            ].max(),
+        }
+    )
+    # mean/std/min/max validation solution_weight_percentage (per instance)
+    performance_dict.update(
+        {
+            "mean_validation_solution_weight_percentage": validation_eval_df[
+                "solution_weight_percentage"
+            ].mean(),
+            "std_validation_solution_weight_percentage": validation_eval_df[
+                "solution_weight_percentage"
+            ].std(),
+            "min_validation_solution_weight_percentage": validation_eval_df[
+                "solution_weight_percentage"
+            ].min(),
+            "max_validation_solution_weight_percentage": validation_eval_df[
+                "solution_weight_percentage"
+            ].max(),
+        }
+    )
+    return performance_dict
 
 
 def training_epoch(
@@ -162,50 +214,87 @@ def training_epoch(
     loss_function: torch.nn.modules.loss._Loss,
     validation_dataloader: Optional[DataLoader] = None,
     validation_period: int = 1000,
-    minor_eval: bool = False,
 ) -> float:
-    epoch_loss = AverageMeter()
+    # TODO DEBUG testar se modelo muda:
+    from copy import deepcopy
+
+    model_copy = deepcopy(model)
+    dataset_size = len(train_dataloader.dataset)
+    training_loss_list = np.empty((dataset_size))
     for i, batch in enumerate(tqdm(train_dataloader, desc="Training", file=sys.stdout)):
-        epoch_loss = training_step(
+        loss = training_step(
             model=model,
             device=device,
             batch=batch,
             optimizer=optimizer,
             loss_function=loss_function,
-            epoch_loss=epoch_loss,
             dataset_name=train_dataloader.dataset.dataset_name,
         )
-        if not validation_dataloader is None and (i % validation_period == 0):
+        training_loss_list[i] = loss
+        if not validation_dataloader is None and (i % (validation_period - 1) == 0):
+            # measure total time for validation epoch
+            start = time.time()
             print(f"Validation at step {i}")
-            validation_loss = validation_epoch(
-                epoch=epoch,
-                step=i,
+            validation_eval_df = validation_epoch(
                 model=model,
                 device=device,
                 dataloader=validation_dataloader,
                 loss_function=loss_function,
                 dataset_name=train_dataloader.dataset.dataset_name,
             )
-            print(f"current validation loss: {validation_loss}")
-            # TODO save validation loss in an array? then, save it in a file?
+            checkpoint_training_loss_list = training_loss_list[
+                (i % validation_period) : i + 1
+            ]
+            performance_dict = get_performance_dict(
+                checkpoint_training_loss_list=checkpoint_training_loss_list,
+                validation_eval_df=validation_eval_df,
+            )
+            # measure total time for validation epoch
+            end = time.time()
+            elapsed_time = end - start
+            # validation evaluation overview string to be saved in a markdown file
+            eval_overview = get_eval_overview_string(
+                eval_df=validation_eval_df,
+                trained_model_name=model.trained_model_name,
+                step="validation",
+                eval_time=elapsed_time,
+            )
 
-        # TODO : delete minor_eval?
-        # if (i % 2500 == 0) and minor_eval:
-        #     model.eval()
-        #     print(f"Minor evaluation at step {i}")
-        #     minor_kep_evaluation(model=model, dataloader=train_dataloader)
+            save_model_checkpoint(
+                model=model,
+                epoch=epoch,
+                step=i,
+                evaluation_overview=eval_overview,
+                performance_dict=performance_dict,
+                training_loss_list=checkpoint_training_loss_list,
+            )
+            # TODO print validation summary:
+            validation_overview_string = (
+                f"# Validation overview (epoch {epoch}, step {i}):"
+            )
+            validation_overview_string += (
+                f"\n* Mean training loss: {performance_dict['mean_training_loss']}"
+            )
+            validation_overview_string += (
+                f"\n* Mean validation loss: {performance_dict['mean_validation_loss']}"
+            )
+            validation_overview_string += f"\n* Mean validation solution_weight_sum: {performance_dict['mean_validation_solution_weight_sum']}"
+            validation_overview_string += f"\n* Mean validation solution_weight_percentage: {performance_dict['mean_validation_solution_weight_percentage']}"
+            print(validation_overview_string)
+            # print(f"current validation loss: {validation_loss}")
 
     num_batches = int(len(train_dataloader.dataset) / train_dataloader.batch_size)
-    avg_loss_per_batch = epoch_loss.sum / num_batches
-    print(
-        f"current training loss: {epoch_loss.average}"
-        f" (total: {epoch_loss.sum} over {epoch_loss.count} predictions,"
-        f" {len(train_dataloader.dataset)} graphs)."
-        f" Average loss per batch: {avg_loss_per_batch}"
-    )
-    # if minor_eval:
-    #     minor_kep_evaluation(model=model, dataloader=train_dataloader)
-    return epoch_loss.average
+
+    # TODO remake this part with the new structure:
+    # avg_loss_per_batch = epoch_loss.sum / num_batches
+    # print(
+    #     f"current training loss: {epoch_loss.average}"
+    #     f" (total: {epoch_loss.sum} over {epoch_loss.count} predictions,"
+    #     f" {len(train_dataloader.dataset)} graphs)."
+    #     f" Average loss per batch: {avg_loss_per_batch}"
+    # )
+    # return epoch_loss.average
+    return None  # TODO
 
 
 def get_training_report(
@@ -246,7 +335,6 @@ def train_model(
     loss_function: torch.nn.modules.loss._Loss,
     validation_dataloader: Optional[DataLoader] = None,
     validation_period: int = 1000,
-    minor_eval: bool = False,
 ) -> torch.nn.Module:
     # TODO description
     model.training_report = get_training_report(
@@ -272,7 +360,6 @@ def train_model(
             train_dataloader=train_dataloader,
             optimizer=optimizer,
             loss_function=loss_function,
-            minor_eval=minor_eval,
             validation_dataloader=validation_dataloader,
             validation_period=validation_period,
             epoch=ep,
@@ -311,7 +398,6 @@ def train(
     learning_rate: float = 0.01,
     use_validation: bool = True,
     validation_period: int = 1000,
-    minor_eval: bool = False,
 ):
     """
     TODO description:
@@ -332,9 +418,6 @@ def train(
         learning_rate: learning rate to be used in training by the optimizer.
         use_validation: if True, runs a validation after each epoch
         validation_period: how many batch predictions will be executed between each validation
-        minor_eval: if True, runs the kep_evaluation.minor_kep_evaluation
-            function at each n predictions. It predicts on 3 random instances
-            and prints on screen the evaluation results for each of them.
     """
     set_torch_seed()
 
@@ -359,6 +442,7 @@ def train(
     )
 
     # train model
+    debug_model_state_dict = str(model.state_dict())
     model = train_model(
         num_epochs=num_epochs,
         model=model,
@@ -368,8 +452,10 @@ def train(
         optimizer=optimizer,
         loss_function=loss_function,
         validation_period=validation_period,
-        minor_eval=minor_eval,
     )
+    debug_model_state_dict_2 = str(model.state_dict())
+    has_state_dict_changed = not (debug_model_state_dict == debug_model_state_dict_2)
+    print(f"DEBUG training worked? {has_state_dict_changed}")
 
     # save model
     save_model(model=model)
@@ -384,5 +470,4 @@ if __name__ == "__main__":
         device=device,
         model_name=MODEL_NAME,
         dataset_name=DATASET_NAME,
-        minor_eval=MINOR_EVAL,
     )

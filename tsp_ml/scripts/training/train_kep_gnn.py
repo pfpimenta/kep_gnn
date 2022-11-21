@@ -10,11 +10,10 @@ sys.path.insert(0, package_folder_path)
 from train import DATASET_NAME, PREDICT_METHOD, train
 
 BATCH_SIZE = 1
-NUM_EPOCHS = 10
+NUM_EPOCHS = 3
 LEARNING_RATE = 0.003
 MODEL_NAME = "KEP_GAT_PNA_CE"
 DATASET_NAME = "KEP"
-MINOR_EVAL = False  # TODO delete this?
 PREDICT_METHOD = "greedy_paths"
 VALIDATION_PERIOD = 1000
 
@@ -33,6 +32,5 @@ if __name__ == "__main__":
         learning_rate=LEARNING_RATE,
         use_validation=True,
         validation_period=VALIDATION_PERIOD,
-        minor_eval=MINOR_EVAL,
         predict_method=PREDICT_METHOD,
     )
