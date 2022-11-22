@@ -15,8 +15,6 @@ LEARNING_RATE = 0.003
 MODEL_NAME = "TSP_GGCN"
 DATASET_NAME = "TSP"
 
-# TODO save training params with model
-
 if __name__ == "__main__":
     # select either CPU or GPU
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

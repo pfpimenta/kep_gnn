@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import torch
 from dataset_utils import get_dataloaders
+from greedy import greedy_paths
 from kep_evaluation import evaluate_kep_instance_prediction, get_eval_overview_string
 from kep_loss import KEPLoss
 from model_utils import get_model, save_model, save_model_checkpoint, set_torch_seed
@@ -40,7 +41,7 @@ def validation_step(
 ) -> Dict[str, Any]:
     # predict
     batch = batch.to(device)
-    batch.scores = model(batch).to(torch.float32)
+    batch.scores = model(batch)
     batch.pred = model.predict(batch).to(torch.float32)
     # calculate loss
     loss = calculate_loss(
@@ -95,7 +96,7 @@ def calculate_loss(
             batch.edge_weights,
             batch.edge_index,
             pred=batch.pred,
-            node_types=batch.type,
+            node_types=batch.type[0],
         )
     elif dataset_name == "KEPCE":
         loss = loss_function(
@@ -124,26 +125,18 @@ def training_step(
     # predict
     batch = batch.to(device)
     batch.scores = model(batch).to(torch.float32)
-    batch.pred = model.predict(batch).to(torch.float32)
+    # batch.pred = model.predict(batch).to(torch.float32)
+    # TODO DEBUG use predict directly from greedy
+    batch.pred = greedy_paths(
+        edge_scores=batch.scores, edge_index=batch.edge_index, node_types=batch.type[0]
+    )
 
-    # TODO re generate dataset,
-    # make sure everything is consistent,
-    # and then delete this if else
-    if isinstance(batch.type[0], list):
-        # print(f"DEBUG batch.type is LIST OF LISTS: {batch.type}")
-        # -> cai quase sempre aqui! 99.85% das instancias
-        batch.type = batch.type[0]
-    else:
-        print(f"\n\n\n\n\nDEBUG batch.type is a SIMPLE LIST: {batch.type}\n\n\n")
-        # -> 0.15% das instancias
-        # DEBUG: save problematic instance IDs
-        filepath = f"{batch.id[0]}.txt"
-        torch.save(batch[0], filepath)
     loss = calculate_loss(
         batch=batch, dataset_name=dataset_name, loss_function=loss_function
     )
     # TODO os pesos não tao atualizando! wtf
     # backpropagate
+    print(f"DEBUG loss: {loss}")
     loss.backward()
     optimizer.step()
     return loss.detach().item()
@@ -222,6 +215,7 @@ def training_epoch(
     dataset_size = len(train_dataloader.dataset)
     training_loss_list = np.empty((dataset_size))
     for i, batch in enumerate(tqdm(train_dataloader, desc="Training", file=sys.stdout)):
+        debug_model_state_dict = str(model.state_dict())
         loss = training_step(
             model=model,
             device=device,
@@ -231,6 +225,11 @@ def training_epoch(
             dataset_name=train_dataloader.dataset.dataset_name,
         )
         training_loss_list[i] = loss
+        debug_model_state_dict_2 = str(model.state_dict())
+        has_state_dict_changed = not (
+            debug_model_state_dict == debug_model_state_dict_2
+        )
+        print(f"DEBUG training_step updated the model? {has_state_dict_changed}")
         if not validation_dataloader is None and (i % (validation_period - 1) == 0):
             # measure total time for validation epoch
             start = time.time()

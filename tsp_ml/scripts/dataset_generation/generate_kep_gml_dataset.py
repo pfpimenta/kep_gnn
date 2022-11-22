@@ -52,8 +52,6 @@ def generate_kep_instance(
         node_type = random.choices(
             population=node_types, weights=node_type_distribution
         )[0]
-        # TODO weight should be in node ???
-        # NAO (!?) ... no artigo ta nas arestas msm...
         if add_node_features:
             # num_edges_in and num_edges_out will be added later
             num_edges_in = 0

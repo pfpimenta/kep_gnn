@@ -77,7 +77,7 @@ def save_model_checkpoint(
     training_loss_list_filepath = checkpoint_dir / "training_loss_list.npy"
     with open(training_loss_list_filepath, "wb") as file:
         np.save(file, training_loss_list)
-    print(f"Saved {training_loss_list}")
+    print(f"Saved {training_loss_list_filepath}")
 
 
 def load_model(

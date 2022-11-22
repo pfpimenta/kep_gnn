@@ -10,12 +10,14 @@ sys.path.insert(0, package_folder_path)
 from train import DATASET_NAME, PREDICT_METHOD, train
 
 BATCH_SIZE = 1
-NUM_EPOCHS = 3
-LEARNING_RATE = 0.003
-MODEL_NAME = "KEP_GAT_PNA_CE"
+NUM_EPOCHS = 1
+LEARNING_RATE = 0.1
+# MODEL_NAME = "KEP_GAT_PNA_CE"
+MODEL_NAME = "KEP_1L_GNN"
 DATASET_NAME = "KEP"
 PREDICT_METHOD = "greedy_paths"
 VALIDATION_PERIOD = 1000
+USE_VALIDATION = True
 
 
 if __name__ == "__main__":
@@ -30,7 +32,7 @@ if __name__ == "__main__":
         batch_size=BATCH_SIZE,
         num_epochs=NUM_EPOCHS,
         learning_rate=LEARNING_RATE,
-        use_validation=True,
+        use_validation=USE_VALIDATION,
         validation_period=VALIDATION_PERIOD,
         predict_method=PREDICT_METHOD,
     )
