@@ -70,6 +70,25 @@ def get_performance_dict(
     return performance_dict
 
 
+def print_validation_summary(
+    epoch: int,
+    step_i: int,
+    performance_dict: Dict[str, Any],
+) -> None:
+    validation_overview_string = (
+        f"# Validation overview (epoch {epoch}, step {step_i}):"
+    )
+    validation_overview_string += (
+        f"\n* Mean training loss: {performance_dict['mean_training_loss']}"
+    )
+    validation_overview_string += (
+        f"\n* Mean validation loss: {performance_dict['mean_validation_loss']}"
+    )
+    validation_overview_string += f"\n* Mean validation solution_weight_sum: {performance_dict['mean_validation_solution_weight_sum']}"
+    validation_overview_string += f"\n* Mean validation solution_weight_percentage: {performance_dict['mean_validation_solution_weight_percentage']}"
+    print(validation_overview_string)
+
+
 def validation_step(
     model: torch.nn.Module,
     device: torch.device,
@@ -166,15 +185,6 @@ def validation(
         training_loss_list=checkpoint_training_loss_list,
     )
     # print validation summary:
-    validation_overview_string = (
-        f"# Validation overview (epoch {epoch}, step {step_i}):"
+    print_validation_summary(
+        epoch=epoch, step_i=step_i, performance_dict=performance_dict
     )
-    validation_overview_string += (
-        f"\n* Mean training loss: {performance_dict['mean_training_loss']}"
-    )
-    validation_overview_string += (
-        f"\n* Mean validation loss: {performance_dict['mean_validation_loss']}"
-    )
-    validation_overview_string += f"\n* Mean validation solution_weight_sum: {performance_dict['mean_validation_solution_weight_sum']}"
-    validation_overview_string += f"\n* Mean validation solution_weight_percentage: {performance_dict['mean_validation_solution_weight_percentage']}"
-    print(validation_overview_string)
