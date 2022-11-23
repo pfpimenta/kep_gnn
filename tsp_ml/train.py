@@ -6,18 +6,15 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 import numpy as np
-import pandas as pd
 import torch
 from dataset_utils import get_dataloaders
 from greedy import greedy_paths
-from kep_evaluation import evaluate_kep_instance_prediction, get_eval_overview_string
-from kep_loss import KEPLoss
-from model_utils import get_model, save_model, save_model_checkpoint, set_torch_seed
-from torch import Tensor
-from torch.nn.functional import one_hot
+from loss import calculate_loss, get_loss_function
+from model_utils import get_model, save_model, set_torch_seed
 from torch_geometric.data.batch import Batch
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
+from validation import validation
 
 BATCH_SIZE = 10
 NUM_EPOCHS = 50
@@ -30,85 +27,6 @@ VALIDATION_PERIOD = (
 )
 
 # TODO refatorar, botar umas funcoes pra fora desse arquivo
-
-
-def validation_step(
-    model: torch.nn.Module,
-    device: torch.device,
-    batch: Batch,
-    loss_function: torch.nn.modules.loss._Loss,
-    dataset_name: str,
-) -> Dict[str, Any]:
-    # predict
-    batch = batch.to(device)
-    batch.scores = model(batch)
-    batch.pred = model.predict(batch).to(torch.float32)
-    # calculate loss
-    loss = calculate_loss(
-        batch=batch, dataset_name=dataset_name, loss_function=loss_function
-    )
-    # evaluate predictions
-    prediction_info = evaluate_kep_instance_prediction(predicted_instance=batch)
-    # save batch loss in prediction_info dict
-    prediction_info["loss"] = loss.detach().item()
-    return prediction_info
-
-
-def validation_epoch(
-    model: torch.nn.Module,
-    device: torch.device,
-    dataloader: DataLoader,
-    loss_function: torch.nn.modules.loss._Loss,
-    dataset_name: str,
-) -> pd.DataFrame:
-    # epoch_loss = AverageMeter() # TODO delete this
-    # TODO criar outra classe que guarda TODAS as loss
-    # TODO ter um objeto desse pra validation e outro pra train
-    # TODO metodos: avg loss per edge, avg per instance, avg per epoch
-    # TODO usar isso pra fazer early stopping
-    model.eval()  # set the model to evaluation mode (freeze weights)
-    eval_df = pd.DataFrame()
-    for _, batch in enumerate(tqdm(dataloader, desc="Validation", file=sys.stdout)):
-        prediction_info = validation_step(
-            model=model,
-            device=device,
-            batch=batch,
-            loss_function=loss_function,
-            dataset_name=dataset_name,
-        )
-        instance_eval_df = pd.DataFrame([prediction_info])
-        eval_df = pd.concat([eval_df, instance_eval_df], ignore_index=True)
-    return eval_df
-
-
-def calculate_loss(
-    batch: Batch,
-    dataset_name: str,
-    loss_function: torch.nn.modules.loss._Loss,
-) -> Tensor:
-    """Calculates loss value for the given batch"""
-    if dataset_name == "TSP" or dataset_name == "DTSP":
-        label = one_hot(batch.y).to(torch.float32)
-        loss = loss_function(batch.scores, label)
-    elif dataset_name == "KEP":
-        loss = loss_function(
-            batch.scores,
-            batch.edge_weights,
-            batch.edge_index,
-            pred=batch.pred,
-            node_types=batch.type[0],
-        )
-    elif dataset_name == "KEPCE":
-        loss = loss_function(
-            batch.scores,
-            batch.edge_weights,
-            batch.edge_index,
-            batch.counter_edge,
-        )
-    else:
-        raise ValueError(f"Invalid dataset_name: {dataset_name}")
-
-    return loss
 
 
 def training_step(
@@ -140,62 +58,6 @@ def training_step(
     loss.backward()
     optimizer.step()
     return loss.detach().item()
-
-
-def get_performance_dict(
-    checkpoint_training_loss_list: np.ndarray,
-    validation_eval_df: pd.DataFrame,
-) -> Dict[str, Any]:
-    performance_dict = {
-        "mean_training_loss": np.mean(checkpoint_training_loss_list),
-        "std_training_loss": np.std(checkpoint_training_loss_list),
-        "min_training_loss": np.min(checkpoint_training_loss_list),
-        "max_training_loss": np.max(checkpoint_training_loss_list),
-    }
-    # mean/std/min/max validation loss (per instance)
-    performance_dict.update(
-        {
-            "mean_validation_loss": validation_eval_df["loss"].mean(),
-            "std_validation_loss": validation_eval_df["loss"].std(),
-            "min_validation_loss": validation_eval_df["loss"].min(),
-            "max_validation_loss": validation_eval_df["loss"].max(),
-        }
-    )
-    # mean/std/min/max validation solution_weight_sum (per instance)
-    performance_dict.update(
-        {
-            "mean_validation_solution_weight_sum": validation_eval_df[
-                "solution_weight_sum"
-            ].mean(),
-            "std_validation_solution_weight_sum": validation_eval_df[
-                "solution_weight_sum"
-            ].std(),
-            "min_validation_solution_weight_sum": validation_eval_df[
-                "solution_weight_sum"
-            ].min(),
-            "max_validation_solution_weight_sum": validation_eval_df[
-                "solution_weight_sum"
-            ].max(),
-        }
-    )
-    # mean/std/min/max validation solution_weight_percentage (per instance)
-    performance_dict.update(
-        {
-            "mean_validation_solution_weight_percentage": validation_eval_df[
-                "solution_weight_percentage"
-            ].mean(),
-            "std_validation_solution_weight_percentage": validation_eval_df[
-                "solution_weight_percentage"
-            ].std(),
-            "min_validation_solution_weight_percentage": validation_eval_df[
-                "solution_weight_percentage"
-            ].min(),
-            "max_validation_solution_weight_percentage": validation_eval_df[
-                "solution_weight_percentage"
-            ].max(),
-        }
-    )
-    return performance_dict
 
 
 def training_epoch(
@@ -231,69 +93,19 @@ def training_epoch(
         )
         print(f"DEBUG training_step updated the model? {has_state_dict_changed}")
         if not validation_dataloader is None and (i % (validation_period - 1) == 0):
-            # measure total time for validation epoch
-            start = time.time()
-            print(f"Validation at step {i}")
-            validation_eval_df = validation_epoch(
+            validation(
                 model=model,
                 device=device,
-                dataloader=validation_dataloader,
                 loss_function=loss_function,
-                dataset_name=train_dataloader.dataset.dataset_name,
-            )
-            checkpoint_training_loss_list = training_loss_list[
-                (i % validation_period) : i + 1
-            ]
-            performance_dict = get_performance_dict(
-                checkpoint_training_loss_list=checkpoint_training_loss_list,
-                validation_eval_df=validation_eval_df,
-            )
-            # measure total time for validation epoch
-            end = time.time()
-            elapsed_time = end - start
-            # validation evaluation overview string to be saved in a markdown file
-            eval_overview = get_eval_overview_string(
-                eval_df=validation_eval_df,
-                trained_model_name=model.trained_model_name,
-                step="validation",
-                eval_time=elapsed_time,
-            )
-
-            save_model_checkpoint(
-                model=model,
+                step_i=i,
                 epoch=epoch,
-                step=i,
-                evaluation_overview=eval_overview,
-                performance_dict=performance_dict,
-                training_loss_list=checkpoint_training_loss_list,
+                training_loss_list=training_loss_list,
+                validation_dataloader=validation_dataloader,
+                validation_period=validation_period,
             )
-            # TODO print validation summary:
-            validation_overview_string = (
-                f"# Validation overview (epoch {epoch}, step {i}):"
-            )
-            validation_overview_string += (
-                f"\n* Mean training loss: {performance_dict['mean_training_loss']}"
-            )
-            validation_overview_string += (
-                f"\n* Mean validation loss: {performance_dict['mean_validation_loss']}"
-            )
-            validation_overview_string += f"\n* Mean validation solution_weight_sum: {performance_dict['mean_validation_solution_weight_sum']}"
-            validation_overview_string += f"\n* Mean validation solution_weight_percentage: {performance_dict['mean_validation_solution_weight_percentage']}"
-            print(validation_overview_string)
-            # print(f"current validation loss: {validation_loss}")
-
     num_batches = int(len(train_dataloader.dataset) / train_dataloader.batch_size)
 
-    # TODO remake this part with the new structure:
-    # avg_loss_per_batch = epoch_loss.sum / num_batches
-    # print(
-    #     f"current training loss: {epoch_loss.average}"
-    #     f" (total: {epoch_loss.sum} over {epoch_loss.count} predictions,"
-    #     f" {len(train_dataloader.dataset)} graphs)."
-    #     f" Average loss per batch: {avg_loss_per_batch}"
-    # )
-    # return epoch_loss.average
-    return None  # TODO
+    return None  # TODO?
 
 
 def get_training_report(
@@ -368,23 +180,6 @@ def train_model(
     model.training_report["total_training_time"] = elapsed_time
     print(f"Total training time: {elapsed_time} seconds")
     return model
-
-
-def get_loss_function(dataset_name: str, train_dataloader: Optional[DataLoader] = None):
-    if dataset_name == "TSP":
-        if train_dataloader is None:
-            raise ValueError(
-                f"A dataloader for the training data must be passed when using the {dataset_name} dataset."
-            )
-        class_weights = train_dataloader.dataset.get_class_weights
-        loss_function = torch.nn.CrossEntropyLoss(weight=torch.tensor(class_weights))
-    elif dataset_name == "DTSP":
-        loss_function = torch.nn.L1Loss()
-    elif dataset_name == "KEP" or dataset_name == "KEPCE":
-        loss_function = KEPLoss()
-    else:
-        raise ValueError(f"No dataset named '{dataset_name}' found.")
-    return loss_function
 
 
 def train(
