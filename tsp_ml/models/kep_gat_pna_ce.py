@@ -156,11 +156,13 @@ class KEP_GAT_PNA_CE(KEP_GNN):
         )
         edge_scores = self.fully_connected_edges(edge_features)
 
-        # src_node-wise softmax
-        edge_scores[:, 0] = node_wise_softmax(
-            edge_scores=edge_scores[:, 0], node_indexes=src, num_nodes=num_nodes
-        )
-        edge_scores[:, 1] = node_wise_softmax(
-            edge_scores=edge_scores[:, 1], node_indexes=src, num_nodes=num_nodes
-        )
+        # basic softmax
+        edge_scores = torch.softmax(input=edge_scores, dim=1)
+        # # src_node-wise softmax
+        # edge_scores[:, 0] = node_wise_softmax(
+        #     edge_scores=edge_scores[:, 0], node_indexes=src, num_nodes=num_nodes
+        # )
+        # edge_scores[:, 1] = node_wise_softmax(
+        #     edge_scores=edge_scores[:, 1], node_indexes=src, num_nodes=num_nodes
+        # )
         return edge_scores

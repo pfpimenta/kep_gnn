@@ -11,6 +11,7 @@ from dataset_utils import get_dataloaders
 from greedy import greedy_paths
 from loss import calculate_loss, get_loss_function
 from model_utils import get_model, save_model, set_torch_seed
+from torch.nn.functional import one_hot
 from torch_geometric.data.batch import Batch
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
@@ -22,11 +23,7 @@ LEARNING_RATE = 0.005
 MODEL_NAME = "TSP_GGCN_large"
 DATASET_NAME = "TSP"
 PREDICT_METHOD = "greedy_paths"
-VALIDATION_PERIOD = (
-    1000  # how many batch predictions will be executed between each validation
-)
-
-# TODO refatorar, botar umas funcoes pra fora desse arquivo
+VALIDATION_PERIOD = 1000  # how many batch predictions on the training set will be executed between each validation
 
 
 def training_step(
@@ -39,24 +36,33 @@ def training_step(
 ) -> float:
     model.train()  # set the model to training mode
     optimizer.zero_grad()
-
+    # debug_model_state_dict = str(model.state_dict())
     # predict
     batch = batch.to(device)
     batch.scores = model(batch).to(torch.float32)
     # batch.pred = model.predict(batch).to(torch.float32)
     # TODO DEBUG use predict directly from greedy
-    batch.pred = greedy_paths(
-        edge_scores=batch.scores, edge_index=batch.edge_index, node_types=batch.type[0]
-    )
-
-    loss = calculate_loss(
-        batch=batch, dataset_name=dataset_name, loss_function=loss_function
-    )
-    # TODO os pesos não tao atualizando! wtf
+    # batch.pred = greedy_paths(
+    #     edge_scores=batch.scores, edge_index=batch.edge_index, node_types=batch.type[0]
+    # )
+    # TODO use fake labels instead of model.predict
+    fake_labels = torch.flatten(torch.randint(high=2, size=(batch.scores.shape[0], 1)))
+    batch.pred = fake_labels
+    # TODO debug loss
+    # loss = calculate_loss(    batch=batch, dataset_name=dataset_name, loss_function=loss_function   )
+    # DEBUG teste com cross entropy
+    loss_function = torch.nn.CrossEntropyLoss()
+    label = one_hot(batch.pred).to(torch.float32)
+    loss = loss_function(batch.scores, label)
     # backpropagate
-    print(f"DEBUG loss: {loss}")
     loss.backward()
     optimizer.step()
+    # debug_model_state_dict_2 = str(model.state_dict())
+    # has_state_dict_changed = not (
+    #     debug_model_state_dict == debug_model_state_dict_2
+    # )
+    # print(f"DEBUG training_step updated the model? {has_state_dict_changed}")
+    # breakpoint()
     return loss.detach().item()
 
 
@@ -70,14 +76,9 @@ def training_epoch(
     validation_dataloader: Optional[DataLoader] = None,
     validation_period: int = 1000,
 ) -> float:
-    # TODO DEBUG testar se modelo muda:
-    from copy import deepcopy
-
-    model_copy = deepcopy(model)
     dataset_size = len(train_dataloader.dataset)
     training_loss_list = np.empty((dataset_size))
     for i, batch in enumerate(tqdm(train_dataloader, desc="Training", file=sys.stdout)):
-        debug_model_state_dict = str(model.state_dict())
         loss = training_step(
             model=model,
             device=device,
@@ -87,11 +88,6 @@ def training_epoch(
             dataset_name=train_dataloader.dataset.dataset_name,
         )
         training_loss_list[i] = loss
-        debug_model_state_dict_2 = str(model.state_dict())
-        has_state_dict_changed = not (
-            debug_model_state_dict == debug_model_state_dict_2
-        )
-        print(f"DEBUG training_step updated the model? {has_state_dict_changed}")
         if not validation_dataloader is None and (i % (validation_period - 1) == 0):
             validation(
                 model=model,
@@ -103,9 +99,6 @@ def training_epoch(
                 validation_dataloader=validation_dataloader,
                 validation_period=validation_period,
             )
-    num_batches = int(len(train_dataloader.dataset) / train_dataloader.batch_size)
-
-    return None  # TODO?
 
 
 def get_training_report(
@@ -164,8 +157,7 @@ def train_model(
     for ep in range(1, num_epochs + 1):
         optimizer.zero_grad()
         print(f"Epoch [{ep}/{num_epochs}]")
-        # TODO tem q retornar model tbm?
-        train_loss = training_epoch(
+        training_epoch(
             model=model,
             device=device,
             train_dataloader=train_dataloader,
@@ -234,9 +226,7 @@ def train(
     loss_function = get_loss_function(
         dataset_name=dataset_name, train_dataloader=train_dataloader
     )
-
     # train model
-    debug_model_state_dict = str(model.state_dict())
     model = train_model(
         num_epochs=num_epochs,
         model=model,
@@ -247,10 +237,6 @@ def train(
         loss_function=loss_function,
         validation_period=validation_period,
     )
-    debug_model_state_dict_2 = str(model.state_dict())
-    has_state_dict_changed = not (debug_model_state_dict == debug_model_state_dict_2)
-    print(f"DEBUG training worked? {has_state_dict_changed}")
-
     # save model
     save_model(model=model)
 
@@ -259,7 +245,6 @@ if __name__ == "__main__":
     # select either CPU or GPU
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using {device}")
-
     train(
         device=device,
         model_name=MODEL_NAME,

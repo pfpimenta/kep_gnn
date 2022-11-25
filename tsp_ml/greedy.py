@@ -7,16 +7,33 @@ from torch import Tensor
 EPSILON = 1e-10
 
 
+def get_ndd_edge_mask(edge_index: Tensor, node_types: Tensor) -> Tensor:
+    # select edges of NDD nodes
+    # TODO use get_node_type_edge_mask (DRY refactor)
+    src, _ = edge_index
+    is_node_ndd_mask = torch.Tensor([int(type == "NDD") for type in node_types])
+    if torch.sum(is_node_ndd_mask) == 0:
+        # raise ValueError("No NDD node found in instance.")
+        print("No NDD node found in instance.")  # TODO
+    ndd_node_ids = (is_node_ndd_mask == 1).nonzero(as_tuple=True)[0]
+    ndd_out_edge_ids = torch.Tensor()
+    for ndd_node_id in ndd_node_ids:
+        edge_ids = (src == ndd_node_id).nonzero(as_tuple=True)[0]
+        ndd_out_edge_ids = torch.cat((ndd_out_edge_ids, edge_ids))
+    is_edge_ndd_mask = torch.zeros_like(src)
+    is_edge_ndd_mask.scatter_(dim=0, index=ndd_out_edge_ids.to(torch.int64), value=1.0)
+    return is_edge_ndd_mask
+
+
 def get_node_type_edge_mask(
     edge_index: Tensor,
     node_types: Tensor,
     node_type: str,
     direction: str = "src",
 ) -> Tensor:
-    """Returns a mask for edge_scores
-    with 1s where the edge's source/destination/both/either node is of type node_type
-    and 0s elsewhere.
-    TODO? optimize:"""
+    """Returns a mask for edge_scores with 1s where the edge's
+    \source/destination/both/either node is of type node_type
+    and 0s elsewhere."""
     src, dst = edge_index
     is_node_pdp_mask = torch.Tensor([int(type == node_type) for type in node_types])
     if torch.sum(is_node_pdp_mask) == 0:
@@ -35,7 +52,6 @@ def get_node_type_edge_mask(
             ValueError(f"Invalid 'direction' parameter: {direction}")
     edge_mask = torch.zeros_like(src)
     edge_mask.scatter_(dim=0, index=edge_ids.to(torch.int64), value=1.0)
-    # breakpoint()
     return edge_mask
 
 
@@ -166,27 +182,15 @@ def greedy_paths(
     until no more edges are available.
     """
     edge_scores = edge_scores[:, 0] / (edge_scores[:, 1] + EPSILON)
-    src, _ = edge_index
     solution = torch.zeros_like(edge_scores)
 
     # select edges of NDD nodes
-    # TODO use get_node_type_edge_mask (DRY refactor)
-    is_node_ndd_mask = torch.Tensor([int(type == "NDD") for type in node_types])
-    if torch.sum(is_node_ndd_mask) == 0:
-        # raise ValueError("No NDD node found in instance.")
-        print("No NDD node found in instance.")  # TODO
-    ndd_node_ids = (is_node_ndd_mask == 1).nonzero(as_tuple=True)[0]
-    ndd_out_edge_ids = torch.Tensor()
-    for ndd_node_id in ndd_node_ids:
-        edge_ids = (src == ndd_node_id).nonzero(as_tuple=True)[0]
-        ndd_out_edge_ids = torch.cat((ndd_out_edge_ids, edge_ids))
-    is_edge_ndd_mask = torch.zeros_like(edge_scores)
-    is_edge_ndd_mask.scatter_(dim=0, index=ndd_out_edge_ids.to(torch.int64), value=1.0)
+    is_edge_ndd_mask = get_ndd_edge_mask(edge_index=edge_index, node_types=node_types)
 
     # add paths to the solution until there are no more valid edges
     # coming from an NDD node
     ndd_out_edge_scores = edge_scores * is_edge_ndd_mask
-    while (ndd_out_edge_scores == torch.zeros_like(ndd_out_edge_scores)).all() == False:
+    while not (ndd_out_edge_scores == torch.zeros_like(ndd_out_edge_scores)).all():
         solution, edge_scores = greedy_choose_path(
             edge_index=edge_index,
             edge_scores=edge_scores,
@@ -194,7 +198,6 @@ def greedy_paths(
             current_solution=solution,
         )
         ndd_out_edge_scores = edge_scores * is_edge_ndd_mask
-
     return solution
 
 
@@ -203,7 +206,21 @@ def greedy_1_path(
     edge_index: Tensor,
     node_types: Tensor,
 ) -> Tensor:
-    raise NotImplemented()  # TODO
+    # TODO testar !!! validar
+    edge_scores = edge_scores[:, 0] / (edge_scores[:, 1] + EPSILON)
+
+    # select edges of NDD nodes
+    is_edge_ndd_mask = get_ndd_edge_mask(edge_index=edge_index, node_types=node_types)
+    ndd_out_edge_scores = edge_scores * is_edge_ndd_mask
+
+    solution = torch.zeros_like(edge_scores)
+    solution, edge_scores = greedy_choose_path(
+        edge_index=edge_index,
+        edge_scores=edge_scores,
+        ndd_out_edge_scores=ndd_out_edge_scores,
+        current_solution=solution,
+    )
+    return solution
 
 
 def greedy_1_cycle(
@@ -265,7 +282,8 @@ def greedy_choose_cycle(
         # the ones that have current_node_id as src
         edge_scores[src == current_node_id] = 0
 
-        # if unable to finish cycle (a dead end was reached), return unchanged solition
+        # if unable to finish cycle (a dead end was reached),
+        # then return unchanged solition
         dead_end = (next_edge_scores == torch.zeros_like(next_edge_scores)).all()
         if dead_end:
             dead_end = True
@@ -288,7 +306,8 @@ def greedy_choose_cycle(
         node_mask = (src == node_id).to(int)
         node_mask += (dst == node_id).to(int)
         nodes_before_cycle_mask += node_mask
-    nodes_before_cycle_mask = nodes_before_cycle_mask.to(bool).to(int)  # only 0s and 1s
+    # only 0s and 1s:
+    nodes_before_cycle_mask = nodes_before_cycle_mask.to(bool).to(int)
     nodes_before_cycle_mask = 1 - nodes_before_cycle_mask
     current_solution = current_solution * nodes_before_cycle_mask
 
@@ -316,7 +335,9 @@ def greedy_choose_path(
 
     # get max score out-edge of next node in the path
     end_of_path = False
+    debug_i = 0
     while end_of_path == False:
+        debug_i += 1
         current_node_id = edge_index[1, chosen_edge_index]
         node_mask = (src == current_node_id).to(int)
         node_edge_scores = edge_scores * node_mask

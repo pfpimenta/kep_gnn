@@ -22,7 +22,7 @@ class KEP_GNN(torch.nn.Module):
 
     @abstractmethod
     def forward(self, data: Batch) -> Tensor:
-        pass
+        raise NotImplementedError()
 
     def predict(self, data: Batch) -> Tensor:
         # TODO make simple edge classification (argmax) available

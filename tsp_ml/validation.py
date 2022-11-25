@@ -118,11 +118,6 @@ def validation_epoch(
     loss_function: torch.nn.modules.loss._Loss,
     dataset_name: str,
 ) -> pd.DataFrame:
-    # epoch_loss = AverageMeter() # TODO delete this
-    # TODO criar outra classe que guarda TODAS as loss
-    # TODO ter um objeto desse pra validation e outro pra train
-    # TODO metodos: avg loss per edge, avg per instance, avg per epoch
-    # TODO usar isso pra fazer early stopping
     model.eval()  # set the model to evaluation mode (freeze weights)
     eval_df = pd.DataFrame()
     for _, batch in enumerate(tqdm(dataloader, desc="Validation", file=sys.stdout)):
