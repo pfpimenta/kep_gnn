@@ -86,15 +86,24 @@ def load_model(
     print_training_report: bool = True,
     dataset: Optional[Dataset] = None,
     predict_method: Optional[str] = None,
+    checkpoint: Optional[str] = None,
 ) -> torch.nn.Module:
     model_name = trained_model_name[17:]
     model = get_model(
-        model_name=model_name, dataset=dataset, predict_method=predict_method
+        model_name=model_name,
+        dataset=dataset,
+        predict_method=predict_method,
     ).to(device)
-    model_filepath = TRAINED_MODELS_FOLDER_PATH / f"{trained_model_name}/model.pt"
+    if checkpoint is None:
+        model_filepath = TRAINED_MODELS_FOLDER_PATH / f"{trained_model_name}/model.pt"
+    else:
+        model_filepath = (
+            TRAINED_MODELS_FOLDER_PATH
+            / f"{trained_model_name}/checkpoints/{checkpoint}/model.pt"
+        )
     print(f"...Loading model from file {model_filepath}")
     model.load_state_dict(torch.load(model_filepath, map_location=device))
-    if print_training_report:
+    if print_training_report and not "Greedy" in model_name:
         training_report_filepath = (
             TRAINED_MODELS_FOLDER_PATH / f"{trained_model_name}/training_report.json"
         )
@@ -105,9 +114,10 @@ def load_model(
 
 
 def get_model(
-    model_name: str = "TSP_GGCN",
+    model_name: str,
     dataset: Optional[Dataset] = None,
     predict_method: Optional[str] = None,
+    checkpoint: Optional[str] = None,
 ) -> torch.nn.Module:
     """Returns an initialized model object"""
     try:
@@ -120,7 +130,7 @@ def get_model(
     model_args = {}
     if "PNA" in model_name:
         model_args["pna_deg"] = dataset.in_degree_histogram
-    if predict_method:
+    if predict_method and not "Greedy" in model_name:
         model_args["predict_method"] = predict_method
     model = Model(**model_args)
     return model

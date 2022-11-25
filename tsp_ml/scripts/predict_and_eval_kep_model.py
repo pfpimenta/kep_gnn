@@ -22,7 +22,12 @@ DATASET_NAME = "KEP"
 # TRAINED_MODEL_NAME = "2022_10_21_09h31_KEP_GAT_PNA_CE" # c/ greedy cycles
 # TRAINED_MODEL_NAME = "2022_10_21_23h55_KEP_GAT_PNA_CE"  # c/ greedy cycles
 # TRAINED_MODEL_NAME = "2022_10_24_03h18_KEP_GAT_PNA_CE"  # treinado c greedy cycles
-TRAINED_MODEL_NAME = "2022_10_25_16h24_KEP_GAT_PNA_CE"
+# logo apos consertar treino, lr=0.1, GreedyPaths
+# TRAINED_MODEL_NAME = "2022_11_25_12h33_KEP_GAT_PNA_CE"
+# validation score: 206:
+TRAINED_MODEL_NAME = "2022_11_25_18h01_KEP_GAT_PNA_CE"
+# CHECKPOINT = None
+CHECKPOINT = "e6_s5994"
 STEP = "test"
 PREDICT_METHOD = "greedy_paths"
 
@@ -42,6 +47,7 @@ if __name__ == "__main__":
         trained_model_name=TRAINED_MODEL_NAME,
         dataset=dataset,
         predict_method=PREDICT_METHOD,
+        checkpoint=CHECKPOINT,
     )
 
     print(f"\n\nPredicting on the {STEP} dataset")
