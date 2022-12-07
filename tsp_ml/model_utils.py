@@ -10,6 +10,14 @@ from paths import TRAINED_MODELS_FOLDER_PATH
 from torch_geometric.data import Dataset
 
 
+def get_checkpoint_name(
+    epoch: int,
+    step: int,
+) -> str:
+    checkpoint_name = f"e{epoch:0>3d}_s{step:0>5d}"
+    return checkpoint_name
+
+
 def save_dict_to_json(dict: Dict[str, Any], json_filepath: str):
     """Saves dictionary in a JSON file formatted with 'pretty-print' style"""
     with open(json_filepath, "w") as file:
@@ -46,7 +54,8 @@ def save_model_checkpoint(
 ) -> None:
     """TODO description"""
     # save model checkpoint
-    checkpoint_dir = model.trained_model_dir / "checkpoints" / f"e{epoch}_s{step}"
+    checkpoint_name = get_checkpoint_name(epoch=epoch, step=step)
+    checkpoint_dir = model.trained_model_dir / "checkpoints" / checkpoint_name
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     trained_model_filepath = checkpoint_dir / "model.pt"
     torch.save(model.state_dict(), trained_model_filepath)
@@ -117,7 +126,6 @@ def get_model(
     model_name: str,
     dataset: Optional[Dataset] = None,
     predict_method: Optional[str] = None,
-    checkpoint: Optional[str] = None,
 ) -> torch.nn.Module:
     """Returns an initialized model object"""
     try:
