@@ -16,9 +16,9 @@ def node_wise_softmax(edge_scores: Tensor, node_indexes: Tensor, num_nodes: int)
     # place 0s where the edge is not associated to the node
     edge_scores = mask * edge_scores
 
-    # put -999999999 where the edge is not associated to the node.
+    # put -1e10 where the edge is not associated to the node.
     # then, softmax will (almost) not consider this value when applied to the 0 dimension
-    minus_inf = torch.full_like(input=edge_scores, fill_value=float(-999999999))
+    minus_inf = torch.full_like(input=edge_scores, fill_value=float(-1e10))
     edge_scores = torch.where(
         condition=(edge_scores != 0.0), input=edge_scores, other=minus_inf
     )
