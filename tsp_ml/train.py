@@ -36,11 +36,11 @@ def training_step(
 ) -> float:
     model.train()  # set the model to training mode
     optimizer.zero_grad()
-    # debug_model_state_dict = str(model.state_dict())
+    debug_model_state_dict = str(model.state_dict())
     # predict
     batch = batch.to(device)
     batch.scores = model(batch).to(torch.float32)
-    # batch.pred = model.predict(batch).to(torch.float32)
+    batch.pred = model.predict(batch).to(torch.float32)
     # TODO DEBUG use predict directly from greedy
     # batch.pred = greedy_paths(
     #     edge_scores=batch.scores, edge_index=batch.edge_index, node_types=batch.type[0]
@@ -49,20 +49,27 @@ def training_step(
     fake_labels = torch.flatten(torch.randint(high=2, size=(batch.scores.shape[0], 1)))
     batch.pred = fake_labels
     # TODO debug loss
-    # loss = calculate_loss(    batch=batch, dataset_name=dataset_name, loss_function=loss_function   )
+    loss = calculate_loss(
+        batch=batch, dataset_name=dataset_name, loss_function=loss_function
+    )
+    # breakpoint()
+    # print(f"loss_function: {loss_function}")
+    # print(f"kep_loss: {kep_loss}")
+    # print(f"type(kep_loss): {type(kep_loss)}")
     # DEBUG teste com cross entropy
-    loss_function = torch.nn.CrossEntropyLoss()
-    label = one_hot(batch.pred).to(torch.float32)
-    loss = loss_function(batch.scores, label)
+    # loss_function = torch.nn.CrossEntropyLoss()
+    # label = one_hot(batch.pred).to(torch.float32)
+    # loss = loss_function(batch.scores, label)
+    # print(f"loss_function: {loss_function}")
+    # print(f"loss: {loss}")
+    # print(f"type(loss): {type(loss)}")
     # backpropagate
     loss.backward()
     optimizer.step()
-    # debug_model_state_dict_2 = str(model.state_dict())
-    # has_state_dict_changed = not (
-    #     debug_model_state_dict == debug_model_state_dict_2
-    # )
-    # print(f"DEBUG training_step updated the model? {has_state_dict_changed}")
-    # breakpoint()
+    debug_model_state_dict_2 = str(model.state_dict())
+    has_state_dict_changed = not (debug_model_state_dict == debug_model_state_dict_2)
+    print(f"\nDEBUG training_step updated the model? {has_state_dict_changed}\n")
+    breakpoint()
     return loss.detach().item()
 
 
@@ -88,7 +95,7 @@ def training_epoch(
             dataset_name=train_dataloader.dataset.dataset_name,
         )
         training_loss_list[i] = loss
-        if not validation_dataloader is None and (i % (validation_period - 1) == 0):
+        if not validation_dataloader is None and (i % (validation_period) == 0):
             validation(
                 model=model,
                 device=device,
@@ -182,6 +189,7 @@ def train(
     batch_size: int = 10,
     num_epochs: int = 10,
     learning_rate: float = 0.01,
+    optimizer_weight_decay: float = 0.0,
     use_validation: bool = True,
     validation_period: int = 1000,
 ):
@@ -221,7 +229,9 @@ def train(
         predict_method=predict_method,
     )
     optimizer = torch.optim.Adam(
-        model.parameters(), lr=learning_rate, weight_decay=5e-4
+        model.parameters(),
+        lr=learning_rate,
+        weight_decay=optimizer_weight_decay,
     )
     loss_function = get_loss_function(
         dataset_name=dataset_name, train_dataloader=train_dataloader
