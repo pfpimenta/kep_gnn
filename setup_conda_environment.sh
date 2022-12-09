@@ -1,15 +1,22 @@
 # Check for cuda capabilities
 if command -v nvidia-smi; then
-    if nvidia-smi | grep 'CUDA Version: 11.[345]'; then
+    if nvidia-smi | grep 'CUDA Version: 11.[3456]'; then
         install_type='cudatoolkit=11.3'
-    elif nvidia-smi | grep 'CUDA Version: 11.[6789]'; then
-        install_type='cudatoolkit=11.6'
+        pytorch_type='pytorch==1.12'
+    elif nvidia-smi | grep 'CUDA Version: 11.[789]'; then
+        install_type='pytorch-cuda=11.7'
+        pytorch_type='pytorch==1.13'
+        extra_nvidia_channel=' -c nvidia '
     elif nvidia-smi | grep 'CUDA Version: 1[23456789].'; then
-        install_type='cudatoolkit=11.6'
+        install_type='pytorch-cuda=11.7'
+        pytorch_type='pytorch==1.13'
+        extra_nvidia_channel=' -c nvidia '
     elif nvidia-smi | grep 'CUDA Version: 11.[012]'; then
-        install_type='cudatoolkit=10.3'
+        install_type='cudatoolkit=10.2'
+        pytorch_type='pytorch==1.12'
     elif nvidia-smi | grep 'CUDA Version: 10.[23456789]'; then
-        install_type='cudatoolkit=10.3'
+        install_type='cudatoolkit=10.2'
+        pytorch_type='pytorch==1.12'
     else
         install_type='cpuonly'
     fi
@@ -30,6 +37,7 @@ else
     install_method='conda'
 fi
 
-command ${install_method} install -n venv_kep_gnn -c pytorch -c pyg -c conda-forge pyg pytorch=1.11 torchvision=0.12 torchaudio=0.11 ${install_type} networkx matplotlib ipykernel pre-commit pandas
+command ${install_method} install -n venv_kep_gnn -c pytorch ${extra_nvidia_channel} -c conda-forge ${pytorch_type} ${install_type} networkx matplotlib ipykernel pre-commit pandas
+command ${install_method} install -n venv_kep_gnn -c pyg pyg 
 
 echo "done"
