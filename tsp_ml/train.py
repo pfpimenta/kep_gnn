@@ -36,40 +36,20 @@ def training_step(
 ) -> float:
     model.train()  # set the model to training mode
     optimizer.zero_grad()
-    debug_model_state_dict = str(model.state_dict())
+    # debug_model_state_dict = str(model.state_dict())
     # predict
     batch = batch.to(device)
     batch.scores = model(batch).to(torch.float32)
     batch.pred = model.predict(batch).to(torch.float32)
-    # TODO DEBUG use predict directly from greedy
-    # batch.pred = greedy_paths(
-    #     edge_scores=batch.scores, edge_index=batch.edge_index, node_types=batch.type[0]
-    # )
-    # TODO use fake labels instead of model.predict
-    fake_labels = torch.flatten(torch.randint(high=2, size=(batch.scores.shape[0], 1)))
-    batch.pred = fake_labels
-    # TODO debug loss
     loss = calculate_loss(
         batch=batch, dataset_name=dataset_name, loss_function=loss_function
     )
-    # breakpoint()
-    # print(f"loss_function: {loss_function}")
-    # print(f"kep_loss: {kep_loss}")
-    # print(f"type(kep_loss): {type(kep_loss)}")
-    # DEBUG teste com cross entropy
-    # loss_function = torch.nn.CrossEntropyLoss()
-    # label = one_hot(batch.pred).to(torch.float32)
-    # loss = loss_function(batch.scores, label)
-    # print(f"loss_function: {loss_function}")
-    # print(f"loss: {loss}")
-    # print(f"type(loss): {type(loss)}")
-    # backpropagate
     loss.backward()
     optimizer.step()
-    debug_model_state_dict_2 = str(model.state_dict())
-    has_state_dict_changed = not (debug_model_state_dict == debug_model_state_dict_2)
-    print(f"\nDEBUG training_step updated the model? {has_state_dict_changed}\n")
-    breakpoint()
+    # debug_model_state_dict_2 = str(model.state_dict())
+    # has_state_dict_changed = not (debug_model_state_dict == debug_model_state_dict_2)
+    # print(f"\nDEBUG training_step updated the model? {has_state_dict_changed}\n")
+    # breakpoint()
     return loss.detach().item()
 
 

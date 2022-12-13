@@ -32,7 +32,7 @@ def get_node_type_edge_mask(
     direction: str = "src",
 ) -> Tensor:
     """Returns a mask for edge_scores with 1s where the edge's
-    \source/destination/both/either node is of type node_type
+    source/destination/both/either node is of type node_type
     and 0s elsewhere."""
     src, dst = edge_index
     is_node_pdp_mask = torch.Tensor([int(type == node_type) for type in node_types])
@@ -183,6 +183,7 @@ def greedy_paths(
     """
     edge_scores = edge_scores[:, 0] / (edge_scores[:, 1] + EPSILON)
     solution = torch.zeros_like(edge_scores)
+    # solution.requires_grad = True  # DEBUG
 
     # select edges of NDD nodes
     is_edge_ndd_mask = get_ndd_edge_mask(edge_index=edge_index, node_types=node_types)
@@ -335,9 +336,7 @@ def greedy_choose_path(
 
     # get max score out-edge of next node in the path
     end_of_path = False
-    debug_i = 0
     while end_of_path == False:
-        debug_i += 1
         current_node_id = edge_index[1, chosen_edge_index]
         node_mask = (src == current_node_id).to(int)
         node_edge_scores = edge_scores * node_mask

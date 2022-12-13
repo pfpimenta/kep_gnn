@@ -38,6 +38,6 @@ else
 fi
 
 command ${install_method} install -n venv_kep_gnn -c pytorch ${extra_nvidia_channel} -c conda-forge ${pytorch_type} ${install_type} networkx matplotlib ipykernel pre-commit pandas
-command ${install_method} install -n venv_kep_gnn -c pyg pyg 
+command ${install_method} install -n venv_kep_gnn -c pyg pyg
 
 echo "done"

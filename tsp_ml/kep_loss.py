@@ -33,16 +33,12 @@ def edges_restriction_loss(pred: Tensor, edge_node_ids: Tensor) -> Tensor:
     loss = Tensor(
         [(num_nodes_in_solution + EPSILON) / (num_unique_nodes_in_solution + EPSILON)]
     )
-
-    # print("\nDEBUG  incoming_edges_restriction_loss")
-    # print(f"DEBUG num_nodes_in_solution: {num_nodes_in_solution}")
-    # print(f"DEBUG num_unique_nodes_in_solution: {num_unique_nodes_in_solution}")
-    # print(f"DEBUG loss before log: {loss}")
     loss = torch.log(loss)
     return loss
 
 
 def unsupervised_kep_loss(
+    scores: Tensor,
     pred: Tensor,
     edge_weights: Tensor,
 ):
@@ -52,11 +48,11 @@ def unsupervised_kep_loss(
         pred: the predicted class for each edge
         edge_weights: the priority weight pre-assigned to each edge
     """
-    solution_weight_sum = torch.sum(edge_weights * pred)
+
+    masked_scores = pred * scores[:, 0]
+    solution_weight_sum = torch.sum(edge_weights * masked_scores)
     total_solution_weight_sum = torch.sum(edge_weights)
-    # not_solution_weight_sum = total_solution_weight_sum - solution_weight_sum
-    # loss = not_solution_weight_sum / (solution_weight_sum + 0.0000001)
-    # loss = torch.log(not_solution_weight_sum / (solution_weight_sum + 0.0000001))
+
     kep_loss = torch.log(
         (total_solution_weight_sum + EPSILON) / (solution_weight_sum + EPSILON)
     )
@@ -82,7 +78,9 @@ def kep_loss(
             i.e. if it was put there artificially for passing messages
             from dst to src nodes, 0 otherwise
     """
-    kep_loss = unsupervised_kep_loss(pred=pred, edge_weights=edge_weights)
+    kep_loss = unsupervised_kep_loss(
+        scores=scores, pred=pred, edge_weights=edge_weights
+    )
 
     # add regularization terms modelling restrictions
     # src, dst = edge_index
@@ -110,7 +108,7 @@ class KEPLoss(_Loss):
     """Loss class for the custom KEP loss"""
 
     def __init__(self, size_average=None, reduce=None, reduction: str = "mean") -> None:
-        super(KEPLoss, self).__init__(size_average, reduce, reduction)
+        super().__init__()
 
     def forward(
         self,
@@ -121,11 +119,7 @@ class KEPLoss(_Loss):
         node_types: Tensor,
         counter_edges: Optional[Tensor] = None,
     ) -> Tensor:
-        return kep_loss(
-            scores=scores,
-            edge_weights=edge_weights,
-            edge_index=edge_index,
-            node_types=node_types,
-            pred=pred,
-            counter_edges=counter_edges,
+        loss = unsupervised_kep_loss(
+            scores=scores, pred=pred, edge_weights=edge_weights
         )
+        return loss

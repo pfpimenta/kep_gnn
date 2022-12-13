@@ -25,8 +25,8 @@ NODE_TYPE_DISTRIBUTION = [0.05, 0.9, 0.05]
 
 if __name__ == "__main__":
     # generate and save train, test, and val KEP datasets
-    # for step in ["train", "test", "val"]:
-    for step in ["val"]:
+    for step in ["train", "test", "val"]:
+        # for step in ["val"]:
         kep_dataset_dir = get_dataset_folder_path(dataset_name="KEP", step=step)
         generate_kep_dataset(
             num_instances=NUM_INSTANCES[step],
