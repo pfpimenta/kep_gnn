@@ -1,5 +1,5 @@
 # virtual environment folder
-venv_tsp_gnn/
+venv_kep_gnn/
 
 # VS code config files
 .vscode/*
