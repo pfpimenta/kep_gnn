@@ -1,6 +1,5 @@
-// s e n d m o r y
-// 9 5 6 7 1 0 8 2
-// 9567 + 1085 = 10652
+// Unfinished code for solving the KEP with gecode solver
+
 #include <gecode/int.hh>
 #include <gecode/search.hh>
 #include <gecode/driver.hh>
