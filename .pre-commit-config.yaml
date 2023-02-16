@@ -24,11 +24,11 @@ repos:
     hooks:
     -   id: isort                               # Sort and organize Python imports
         args: [ -m=3 , -tc , -l 88, -p "black"]
--   repo: local
+-   repo: https://github.com/roy-ht/pre-commit-jupyter
+    rev: v1.2.1
     hooks:
-      - id: jupyter-nb-clear-output             # Avoids commiting Jupyter Notebook outputs to repository
-        name: jupyter-nb-clear-output
-        files: \.ipynb$
-        stages: [commit]
-        language: system
-        entry: python -m nbconvert --ClearOutputPreprocessor.enabled=True --inplace
+    -   id: jupyter-notebook-cleanup
+        args:
+            # - --remove-kernel-metadata
+            - --pin-patterns
+            - "[pin];[donotremove]"
