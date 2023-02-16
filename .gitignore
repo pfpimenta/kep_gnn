@@ -19,6 +19,9 @@ data/**/*.pt
 # networkx gml files
 data/**/*.g
 
+# instance plot image files
+data/**/*.png
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
