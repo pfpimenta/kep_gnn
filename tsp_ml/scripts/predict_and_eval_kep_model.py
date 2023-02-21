@@ -25,9 +25,11 @@ DATASET_NAME = "KEP"
 # logo apos consertar treino, lr=0.1, GreedyPaths
 # TRAINED_MODEL_NAME = "2022_11_25_12h33_KEP_GAT_PNA_CE"
 # validation score: 206:
-TRAINED_MODEL_NAME = "2022_11_25_18h01_KEP_GAT_PNA_CE"
+# TRAINED_MODEL_NAME = "2022_11_25_18h01_KEP_GAT_PNA_CE"
+#  gambi genial 220 e poucos
+TRAINED_MODEL_NAME = "2022_12_09_01h15_KEP_GAT_PNA_CE"  # e006_s03500 ou e009_09000
 # CHECKPOINT = None
-CHECKPOINT = "e6_s5994"
+CHECKPOINT = "e006_s03500"
 STEP = "test"
 PREDICT_METHOD = "greedy_paths"
 
