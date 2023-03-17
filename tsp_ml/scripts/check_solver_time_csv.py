@@ -15,6 +15,15 @@ csv_filepath = RESULTS_FOLDER_PATH / "recursive_solver_time.csv"
 df = pd.read_csv(csv_filepath)
 
 print(
+    f"Max time per num_nodes: {df.groupby('num_nodes')['prediction_elapsed_time'].max()}"
+)
+print(
+    f"Min time per num_nodes: {df.groupby('num_nodes')['prediction_elapsed_time'].min()}"
+)
+print(
+    f"Median time per num_nodes: {df.groupby('num_nodes')['prediction_elapsed_time'].median()}"
+)
+print(
     f"Mean time per num_nodes: {df.groupby('num_nodes')['prediction_elapsed_time'].mean()}"
 )
 breakpoint()
