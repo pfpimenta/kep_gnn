@@ -37,3 +37,4 @@ plt.xticks(rotation=30)
 filename = "kep_results_barplot.png"
 filepath = PLOTS_FOLDER_PATH / filename
 plt.savefig(filepath)
+print(f"Saved {filepath}")
