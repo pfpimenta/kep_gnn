@@ -8,7 +8,6 @@ from typing import Any, Dict, Optional
 import numpy as np
 import torch
 from dataset_utils import get_dataloaders
-from greedy import greedy_paths
 from loss import calculate_loss, get_loss_function
 from model_utils import get_model, save_model, set_torch_seed
 from torch.nn.functional import one_hot
@@ -38,7 +37,8 @@ def training_step(
     optimizer.zero_grad()
     # debug_model_state_dict = str(model.state_dict())
     # predict
-    batch = batch.to(device)
+    model = model.to(device=device)
+    batch = batch.to(device=device)
     batch.scores = model(batch).to(torch.float32)
     batch.pred = model.predict(batch).to(torch.float32)
     loss = calculate_loss(
@@ -207,7 +207,8 @@ def train(
         model_name=model_name,
         dataset=train_dataloader.dataset,
         predict_method=predict_method,
-    )
+        device=device,
+    ).to(device=device)
     optimizer = torch.optim.Adam(
         model.parameters(),
         lr=learning_rate,
