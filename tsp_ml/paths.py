@@ -5,6 +5,7 @@ from typing import Optional
 PROJECT_FOLDER_PATH = pathlib.Path(__file__).parent.parent.resolve()
 TRAINED_MODELS_FOLDER_PATH = PROJECT_FOLDER_PATH / "trained_models"
 RESULTS_FOLDER_PATH = PROJECT_FOLDER_PATH / "results"
+PLOTS_FOLDER_PATH = RESULTS_FOLDER_PATH / "plots"
 MODEL_PERFORMANCE_FOLDER_PATH = PROJECT_FOLDER_PATH / "model_performance"
 
 
@@ -57,6 +58,8 @@ folder_path_list = [
     PROJECT_FOLDER_PATH,
     TRAINED_MODELS_FOLDER_PATH,
     MODEL_PERFORMANCE_FOLDER_PATH,
+    RESULTS_FOLDER_PATH,
+    PLOTS_FOLDER_PATH,
 ]
 for folder_path in folder_path_list:
     folder_path.mkdir(parents=True, exist_ok=True)
