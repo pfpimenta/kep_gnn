@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import Optional
+
 import torch
 import torch.nn.functional as F
 from models.gnn_layers.node_wise_softmax import node_wise_softmax
@@ -12,9 +14,10 @@ class KEP_GAT_PNA_CE(KEP_GNN):
     """GNN for KEP dataset that uses GAT and PNA message passing layers
     from src to dst nodes, and from dst to src nodes."""
 
-    def __init__(self, pna_deg: Tensor, predict_method: str = "greedy_paths"):
+    def __init__(self, pna_deg: Tensor, predict_method: Optional[str] = None):
         super().__init__()
         self.predict_method = predict_method
+        # print(f"DEBUG kep gat pna ce init self.predict_method>: {self.predict_method}")
         # TODO check if given predicted_method is valid
 
         # binary classification -> one score for each class

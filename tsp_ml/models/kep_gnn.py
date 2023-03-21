@@ -25,13 +25,15 @@ class KEP_GNN(torch.nn.Module):
         raise NotImplementedError()
 
     def predict(self, data: Batch) -> Tensor:
-        # TODO make simple edge classification (argmax) available
-        solution = greedy(
-            edge_scores=data.scores,
-            edge_index=data.edge_index,
-            node_types=data.type[0],
-            greedy_algorithm=self.predict_method,
-        )
+        if self.predict_method is None:
+            solution = torch.argmax(data.scores, dim=1)
+        else:
+            solution = greedy(
+                edge_scores=data.scores,
+                edge_index=data.edge_index,
+                node_types=data.type[0],
+                greedy_algorithm=self.predict_method,
+            )
         return solution
 
     @property
