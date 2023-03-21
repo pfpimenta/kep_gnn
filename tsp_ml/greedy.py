@@ -7,20 +7,26 @@ from torch import Tensor
 EPSILON = 1e-10
 
 
-def get_ndd_edge_mask(edge_index: Tensor, node_types: Tensor) -> Tensor:
+def get_ndd_edge_mask(
+    edge_index: Tensor,
+    node_types: Tensor,
+    device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+) -> Tensor:
     # select edges of NDD nodes
     # TODO use get_node_type_edge_mask (DRY refactor)
     src, _ = edge_index
-    is_node_ndd_mask = torch.Tensor([int(type == "NDD") for type in node_types])
+    is_node_ndd_mask = torch.tensor(
+        [int(type == "NDD") for type in node_types], device=device
+    )
     if torch.sum(is_node_ndd_mask) == 0:
         # raise ValueError("No NDD node found in instance.")
         print("No NDD node found in instance.")  # TODO
     ndd_node_ids = (is_node_ndd_mask == 1).nonzero(as_tuple=True)[0]
-    ndd_out_edge_ids = torch.Tensor()
+    ndd_out_edge_ids = torch.tensor(data=[], device=device)
     for ndd_node_id in ndd_node_ids:
         edge_ids = (src == ndd_node_id).nonzero(as_tuple=True)[0]
         ndd_out_edge_ids = torch.cat((ndd_out_edge_ids, edge_ids))
-    is_edge_ndd_mask = torch.zeros_like(src)
+    is_edge_ndd_mask = torch.zeros_like(src, device=device)
     is_edge_ndd_mask.scatter_(dim=0, index=ndd_out_edge_ids.to(torch.int64), value=1.0)
     return is_edge_ndd_mask
 
@@ -30,17 +36,20 @@ def get_node_type_edge_mask(
     node_types: Tensor,
     node_type: str,
     direction: str = "src",
+    device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 ) -> Tensor:
     """Returns a mask for edge_scores with 1s where the edge's
     source/destination/both/either node is of type node_type
     and 0s elsewhere."""
     src, dst = edge_index
-    is_node_pdp_mask = torch.Tensor([int(type == node_type) for type in node_types])
+    is_node_pdp_mask = torch.Tensor(
+        [int(type == node_type) for type in node_types], device=device
+    )
     if torch.sum(is_node_pdp_mask) == 0:
         raise ValueError(f"No {node_type} node found in instance.")
         # print(f"No {node_type} node found in instance.")
     pdp_node_ids = (is_node_pdp_mask == 1).nonzero(as_tuple=True)[0]
-    edge_ids = torch.Tensor()
+    edge_ids = torch.tensor(data=[], device=device)
     for pdp_node_id in pdp_node_ids:
         if direction == "src":
             src_edge_ids = (src == pdp_node_id).nonzero(as_tuple=True)[0]
@@ -50,7 +59,7 @@ def get_node_type_edge_mask(
             edge_ids = torch.cat((edge_ids, dst_edge_ids))
         else:
             ValueError(f"Invalid 'direction' parameter: {direction}")
-    edge_mask = torch.zeros_like(src)
+    edge_mask = torch.zeros_like(src, device=device)
     edge_mask.scatter_(dim=0, index=edge_ids.to(torch.int64), value=1.0)
     return edge_mask
 
@@ -74,6 +83,7 @@ def greedy(
     edge_index: Tensor,
     node_types: Tensor,
     greedy_algorithm: str = "greedy_paths",
+    device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 ) -> Tensor:
     """TODO description
     greedy_algorithm, by default, is set to 'greedy_paths' its options are:
@@ -85,30 +95,35 @@ def greedy(
             edge_scores=edge_scores,
             edge_index=edge_index,
             node_types=node_types,
+            device=device,
         )
     elif greedy_algorithm == "greedy_paths":
         solution = greedy_paths(
             edge_scores=edge_scores,
             edge_index=edge_index,
             node_types=node_types,
+            device=device,
         )
     elif greedy_algorithm == "greedy_cycles":
         solution = greedy_cycles(
             edge_scores=edge_scores,
             edge_index=edge_index,
             node_types=node_types,
+            device=device,
         )
     elif greedy_algorithm == "greedy_1_path":
         solution = greedy_1_path(
             edge_scores=edge_scores,
             edge_index=edge_index,
             node_types=node_types,
+            device=device,
         )
     elif greedy_algorithm == "greedy_1_cycle":
         solution = greedy_1_cycle(
             edge_scores=edge_scores,
             edge_index=edge_index,
             node_types=node_types,
+            device=device,
         )
     else:
         raise ValueError(
@@ -122,6 +137,7 @@ def greedy_cycles_and_paths(
     edge_scores: Tensor,
     edge_index: Tensor,
     node_types: Tensor,
+    device: torch.device,
 ) -> Tensor:
     raise NotImplemented()  # TODO
 
@@ -130,6 +146,7 @@ def greedy_cycles(
     edge_scores: Tensor,
     edge_index: Tensor,
     node_types: Tensor,
+    device: torch.device,
 ) -> Tensor:
     # TODO description: returns a solution formed only by kidney exchange cycles
     # edge_scores = edge_scores[:, 0] / (edge_scores[:, 1] + EPSILON)
@@ -142,12 +159,14 @@ def greedy_cycles(
         node_types=node_types,
         node_type="PDP",
         direction="src",
+        device=device,
     )
     is_pdp_dst_edge_mask = get_node_type_edge_mask(
         edge_index=edge_index,
         node_types=node_types,
         node_type="PDP",
         direction="dst",
+        device=device,
     )
     is_pdp_edge_mask = is_pdp_src_edge_mask * is_pdp_dst_edge_mask
     edge_scores = edge_scores * is_pdp_edge_mask
@@ -173,6 +192,7 @@ def greedy_paths(
     edge_scores: Tensor,
     edge_index: Tensor,
     node_types: Tensor,
+    device: torch.device,
 ) -> Tensor:
     """
     repeats until there are no more valid edges
@@ -186,7 +206,9 @@ def greedy_paths(
     # solution.requires_grad = True  # DEBUG
 
     # select edges of NDD nodes
-    is_edge_ndd_mask = get_ndd_edge_mask(edge_index=edge_index, node_types=node_types)
+    is_edge_ndd_mask = get_ndd_edge_mask(
+        edge_index=edge_index, node_types=node_types, device=device
+    )
 
     # add paths to the solution until there are no more valid edges
     # coming from an NDD node
@@ -206,12 +228,15 @@ def greedy_1_path(
     edge_scores: Tensor,
     edge_index: Tensor,
     node_types: Tensor,
+    device: torch.device,
 ) -> Tensor:
     # TODO testar !!! validar
     edge_scores = edge_scores[:, 0] / (edge_scores[:, 1] + EPSILON)
 
     # select edges of NDD nodes
-    is_edge_ndd_mask = get_ndd_edge_mask(edge_index=edge_index, node_types=node_types)
+    is_edge_ndd_mask = get_ndd_edge_mask(
+        edge_index=edge_index, node_types=node_types, device=device
+    )
     ndd_out_edge_scores = edge_scores * is_edge_ndd_mask
 
     solution = torch.zeros_like(edge_scores)
@@ -228,6 +253,7 @@ def greedy_1_cycle(
     edge_scores: Tensor,
     edge_index: Tensor,
     node_types: Tensor,
+    device: torch.device,
 ) -> Tensor:
     raise NotImplemented()  # TODO
 

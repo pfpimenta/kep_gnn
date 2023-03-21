@@ -102,6 +102,7 @@ def load_model(
         model_name=model_name,
         dataset=dataset,
         predict_method=predict_method,
+        device=device,
     ).to(device)
     if checkpoint is None:
         model_filepath = TRAINED_MODELS_FOLDER_PATH / f"{trained_model_name}/model.pt"
@@ -126,6 +127,7 @@ def get_model(
     model_name: str,
     dataset: Optional[Dataset] = None,
     predict_method: Optional[str] = None,
+    device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 ) -> torch.nn.Module:
     """Returns an initialized model object"""
     try:
@@ -140,6 +142,8 @@ def get_model(
         model_args["pna_deg"] = dataset.in_degree_histogram
     if predict_method and not "Greedy" in model_name:
         model_args["predict_method"] = predict_method
+    if device:
+        model_args["device"] = device
     model = Model(**model_args)
     return model
 

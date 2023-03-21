@@ -14,8 +14,17 @@ class KEP_GAT_PNA_CE(KEP_GNN):
     """GNN for KEP dataset that uses GAT and PNA message passing layers
     from src to dst nodes, and from dst to src nodes."""
 
-    def __init__(self, pna_deg: Tensor, predict_method: Optional[str] = None):
-        super().__init__()
+    def __init__(
+        self,
+        pna_deg: Tensor,
+        predict_method: Optional[str] = None,
+        device: torch.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        ),
+    ):
+        super().__init__(device=device)
+        self.__device = device
+
         self.predict_method = predict_method
         # print(f"DEBUG kep gat pna ce init self.predict_method>: {self.predict_method}")
         # TODO check if given predicted_method is valid
@@ -66,8 +75,6 @@ class KEP_GAT_PNA_CE(KEP_GNN):
             out_channels=int((node_features_size[2] / gat_attention_heads) / 2),
             heads=gat_attention_heads,
         )
-
-        # TODO use another layer?
         self.gat_conv_2 = GATv2Conv(
             in_channels=node_features_size[2],
             edge_dim=edge_features_size[0],
@@ -129,7 +136,6 @@ class KEP_GAT_PNA_CE(KEP_GNN):
         node_features = torch.cat((node_features_e, node_features_ce), dim=1)
         node_features = F.relu(node_features)
         node_features = F.dropout(node_features, training=self.training)
-        # TODO use another layer?
         node_features_e = self.gat_conv_2(
             x=node_features,
             edge_index=edge_index,
@@ -165,10 +171,16 @@ class KEP_GAT_PNA_CE(KEP_GNN):
         # src_node-wise softmax
         # TODO test with dst_node-wise softmax
         edge_scores[:, 0] = node_wise_softmax(
-            edge_scores=edge_scores[:, 0], node_indexes=src, num_nodes=num_nodes
+            edge_scores=edge_scores[:, 0],
+            node_indexes=src,
+            num_nodes=num_nodes,
+            device=self.__device,
         )
         edge_scores[:, 1] = node_wise_softmax(
-            edge_scores=edge_scores[:, 1], node_indexes=src, num_nodes=num_nodes
+            edge_scores=edge_scores[:, 1],
+            node_indexes=src,
+            num_nodes=num_nodes,
+            device=self.__device,
         )
 
         # basic softmax

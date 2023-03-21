@@ -15,7 +15,7 @@ sys.path.insert(0, package_folder_path)
 from datasets.kep_dataset_generation import generate_kep_dataset
 from paths import get_dataset_folder_path
 
-dataset_sizes = [10, 11, 50, 51, 100, 101, 250, 251, 500, 501, 1000, 1001, 5000, 5001]
+dataset_sizes = [10, 50, 100, 250, 500, 1000, 5000]
 for dataset_size in dataset_sizes:
     output_dir = get_dataset_folder_path(
         dataset_name="KEP",

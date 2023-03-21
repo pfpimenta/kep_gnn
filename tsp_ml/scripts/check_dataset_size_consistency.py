@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
 import torch
+from matplotlib import rcParams
 
 # to allow imports from outside the tsp_ml/datasets/ package
 package_folder_path = str(Path(__file__).parent.parent)
@@ -16,7 +17,7 @@ sys.path.insert(0, package_folder_path)
 from dataset_utils import get_dataset
 from kep_evaluation import kep_evaluation
 from model_utils import load_model
-from paths import get_predictions_folder_path
+from paths import PLOTS_FOLDER_PATH, get_predictions_folder_path
 from predict import predict
 
 
@@ -49,6 +50,10 @@ def jensen_shannon_distance(p, q):
     return distance
 
 
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
+print(f"Using {device}")
+
 # load 10k instances dataset
 train_dataset = get_dataset(dataset_name="KEP", step="train")
 train_in_degree_histogram = [int(x) for x in list(train_dataset.in_degree_histogram)]
@@ -59,9 +64,11 @@ trained_model_name = "2022_09_19_23h55_GreedyPathsModel"
 model = load_model(
     trained_model_name=trained_model_name,
     dataset=train_dataset,
+    device=device,
 )
 
-dataset_sizes = [10, 11, 50, 51, 100, 101, 250, 251, 500, 501, 1000, 1001, 5000, 5001]
+dataset_sizes = [10, 50, 100, 250, 500, 1000, 5000]
+js_distances = []
 for dataset_size in dataset_sizes:
     # load dataset
     step = f"debug_{dataset_size}"
@@ -69,7 +76,7 @@ for dataset_size in dataset_sizes:
     dataset = get_dataset(dataset_name="KEP", step=f"debug_{dataset_size}")
     in_degree_histogram = [int(x) for x in list(dataset.in_degree_histogram)]
 
-    # plot
+    # plot dataset in degree histogram
     # y_pos = np.arange(len(in_degree_histogram))
     # plt.bar(y_pos, in_degree_histogram)
     # plt.show()
@@ -85,28 +92,46 @@ for dataset_size in dataset_sizes:
         train_in_degree_histogram, in_degree_histogram
     )
     print(f"js_distance from 10k dataset: {js_distance}")
+    js_distances.append(js_distance)
 
     # evaluate greedy_path's performance on this dataset
-    print(f"\n\nPredicting on the {step} dataset using GreedyPaths method")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using {device}")
-    predictions_dir = get_predictions_folder_path(
-        dataset_name="KEP",
-        step=step,
-        trained_model_name=trained_model_name,
-    )
-    predict(
-        model=model,
-        device=device,
-        dataset=dataset,
-        output_dir=predictions_dir,
-        batch_size=1,
-        save_as_pt=True,
-    )
+    # print(f"\n\nPredicting on the {step} dataset using GreedyPaths method")
+    # predictions_dir = get_predictions_folder_path(
+    #     dataset_name="KEP",
+    #     step=step,
+    #     trained_model_name=trained_model_name,
+    # )
+    # predict(
+    #     model=model,
+    #     device=device,
+    #     dataset=dataset,
+    #     output_dir=predictions_dir,
+    #     batch_size=1,
+    #     save_as_pt=True,
+    # )
+    # ## then, compute and save evaluation for the predictions done.
+    # kep_evaluation(
+    #     step=step,
+    #     trained_model_name=trained_model_name,
+    #     dataset_name="KEP",
+    # )
 
-    ## then, compute and save evaluation for the predictions done.
-    kep_evaluation(
-        step=step,
-        trained_model_name=trained_model_name,
-        dataset_name="KEP",
-    )
+
+## plot js_distances per dataset size figure and save
+# print(f"DEBUG js_distances: {js_distances}")
+# configure matplotlib to automatically adjust the plot size
+rcParams.update({"figure.autolayout": True})
+# create bar plot
+y_pos = np.arange(len(dataset_sizes))
+plot = plt.bar(y_pos, js_distances)
+# set axis labels
+plt.xlabel("Dataset size\n(Number of instances)")
+plt.ylabel("J.S distance")
+# add labels to the x-axis
+plt.xticks(y_pos, dataset_sizes)
+plt.xticks(rotation=30)
+# save figure as a PNG
+filename = "JS_distances_per_dataset_size.png"
+filepath = PLOTS_FOLDER_PATH / filename
+plt.savefig(filepath)
+print(f"Saved {filepath}")

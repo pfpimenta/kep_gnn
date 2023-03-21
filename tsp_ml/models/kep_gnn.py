@@ -14,8 +14,14 @@ class KEP_GNN(torch.nn.Module):
     that all GNNs for the KEP problem should have
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        device: torch.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        ),
+    ):
         super().__init__()
+        self.__device = device
         self.__training_report = None
         self.__trained_model_name = None
         self.__trained_model_dir = None
@@ -33,6 +39,7 @@ class KEP_GNN(torch.nn.Module):
                 edge_index=data.edge_index,
                 node_types=data.type[0],
                 greedy_algorithm=self.predict_method,
+                device=self.__device,
             )
         return solution
 
