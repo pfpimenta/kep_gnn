@@ -14,7 +14,7 @@ sys.path.insert(0, package_folder_path)
 import torch
 from dataset_utils import get_dataset, print_dataset_information
 from model_utils import load_model
-from paths import RESULTS_FOLDER_PATH
+from paths import PREDICTION_TIME_FOLDER_PATH
 from torch_geometric.data import Dataset
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
@@ -27,17 +27,24 @@ DATASET_NAME = "KEP"
 # TRAINED_MODEL_NAME = "2023_03_17_15h55_KEP_GAT_PNA_CE" # UnsupervisedGNN com regularization loss
 TRAINED_MODELS = [
     # (trained_model_name, checkpoint, predict_method)
-    # ("2022_09_19_23h55_GreedyPathsModel", None, "greedy_paths"),  # GreedyPaths
-    # ("2022_10_17_19h17_GreedyCyclesModel", None, "greedy_cycles"),  # GreedyCycles
+    ("2022_09_19_23h55_GreedyPathsModel", None, "greedy_paths"),  # GreedyPaths
+    ("2022_10_17_19h17_GreedyCyclesModel", None, "greedy_cycles"),  # GreedyCycles
     (
         "2022_12_09_01h15_KEP_GAT_PNA_CE",
         "e006_s03500",
         "greedy_paths",
     ),  # GNN+GreedyPaths
-    # ("", None, "greedy_paths"), # GNN+GreedyCycles
-    # ("2023_03_16_23h16_KEP_GAT_PNA_CE", None, "greedy_cycles"),  # nova GNN+GreedyCycles pro tcc
-    # ("2023_03_17_12h09_KEP_GAT_PNA_CE", None, "greedy_paths"), # UnsupervisedGNN sem regularization loss
-    # ("2023_03_17_15h55_KEP_GAT_PNA_CE", None, "greedy_paths"), # UnsupervisedGNN com regularization loss
+    ("2023_03_16_23h16_KEP_GAT_PNA_CE", None, "greedy_cycles"),  # GNN+GreedyCycles
+    (
+        "2023_03_17_12h09_KEP_GAT_PNA_CE",
+        None,
+        None,
+    ),  # UnsupervisedGNN sem regularization loss
+    (
+        "2023_03_17_15h55_KEP_GAT_PNA_CE",
+        None,
+        None,
+    ),  # UnsupervisedGNN com regularization loss
 ]
 
 # CHECKPOINT = None
@@ -66,7 +73,7 @@ def measure_prediction_time(
     )
 
     csv_filepath = (
-        RESULTS_FOLDER_PATH
+        PREDICTION_TIME_FOLDER_PATH
         / f"{trained_model_name}_{device}_{STEP}_prediction_time.csv"
     )
     print(f"Predictions times will be saved to {csv_filepath}.")

@@ -12,19 +12,24 @@ import seaborn as sns
 package_folder_path = str(Path(__file__).parent.parent.parent)
 sys.path.insert(0, package_folder_path)
 
-from paths import RESULTS_FOLDER_PATH
+from paths import PREDICTION_TIME_FOLDER_PATH
 
 DEVICE = "cpu"
 STEP = "test"
 TRAINED_MODELS = [
     # (trained_model_name, plot_model_name)
-    # ("2022_09_19_23h55_GreedyPathsModel", "GreedyPaths"),  # GreedyPaths
+    ("2022_09_19_23h55_GreedyPathsModel", "GreedyPaths"),  # GreedyPaths
     ("2022_10_17_19h17_GreedyCyclesModel", "GreedyCycles"),  # GreedyCycles
     ("2022_12_09_01h15_KEP_GAT_PNA_CE", "GNN+GreedyPaths"),  # GNN+GreedyPaths
-    # ("", None, "greedy_paths"), # GNN+GreedyCycles
-    # ("2023_03_16_23h16_KEP_GAT_PNA_CE", None, "greedy_cycles"),  # nova GNN+GreedyCycles pro tcc
-    # ("2023_03_17_12h09_KEP_GAT_PNA_CE", None, "greedy_paths"), # UnsupervisedGNN sem regularization loss
-    # ("2023_03_17_15h55_KEP_GAT_PNA_CE", None, "greedy_paths"), # UnsupervisedGNN com regularization loss
+    (
+        "2023_03_16_23h16_KEP_GAT_PNA_CE",
+        "GNN+GreedyCycles",
+    ),  # nova GNN+GreedyCycles pro tcc
+    # ("2023_03_17_12h09_KEP_GAT_PNA_CE", "UnsupervisedGNN_s_reg"), # UnsupervisedGNN sem regularization loss
+    (
+        "2023_03_17_15h55_KEP_GAT_PNA_CE",
+        "UnsupervisedGNN",
+    ),  # UnsupervisedGNN com regularization loss
 ]
 
 
@@ -33,7 +38,7 @@ if __name__ == "__main__":
     for trained_model_name, plot_model_name in TRAINED_MODELS:
         # load prediction time CSV
         csv_filepath = (
-            RESULTS_FOLDER_PATH
+            PREDICTION_TIME_FOLDER_PATH
             / f"{trained_model_name}_{DEVICE}_{STEP}_prediction_time.csv"
         )
         print(f"Loading predictions times from {csv_filepath}.")
@@ -51,8 +56,11 @@ if __name__ == "__main__":
     plot_df = pd.concat(df_list)
 
 # breakpoint()
-plot = sns.boxplot(plot_df, x="plot_model_name", y="prediction_elapsed_time")
+plot = sns.boxplot(
+    plot_df, x="plot_model_name", y="prediction_elapsed_time"
+)  # , whis=5.0)
+# plot = sns.violinplot(plot_df, x="plot_model_name", y="prediction_elapsed_time")
 plot.set_ylabel("Prediction time in seconds")
-# plot.set_xlabel("Number of nodes")
+plot.set_xlabel("")
 
 plt.show()
