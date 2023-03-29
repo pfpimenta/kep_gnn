@@ -18,11 +18,12 @@ class KEP_GAT_PNA_CE(KEP_GNN):
         self,
         pna_deg: Tensor,
         predict_method: Optional[str] = None,
+        cycle_path_size_limit: Optional[int] = None,
         device: torch.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         ),
     ):
-        super().__init__(device=device)
+        super().__init__(device=device, cycle_path_size_limit=cycle_path_size_limit)
         self.__device = device
 
         self.predict_method = predict_method

@@ -2,7 +2,6 @@
 from typing import Optional
 
 import torch
-from greedy import greedy
 from torch import Tensor
 from torch.autograd import Variable
 from torch.nn.modules.loss import _Loss

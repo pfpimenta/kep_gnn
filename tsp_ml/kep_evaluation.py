@@ -4,7 +4,7 @@ import os
 import sys
 import time
 from random import randint
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import pandas as pd
 import torch
@@ -85,6 +85,10 @@ def evaluate_kep_instance_prediction(
     num_invalid_edges = {}
     valid_edges_percentage = {}
 
+    # TODO distribution of paths and cycles sizes
+    # TODO measure paths sizes
+    # TODO measure cycles sizes
+
     for (name, edge_node_ids) in [("src", src), ("dst", dst)]:
         solution_edge_node_ids = torch.index_select(
             input=edge_node_ids, dim=0, index=solution_edge_indexes
@@ -119,6 +123,7 @@ def evaluate_kep_instance_prediction(
     )
     if num_invalid_pdp_nodes > 0:
         is_solution_valid = False
+        # breakpoint()
         print(f"Found an invalid solution!   id: {predicted_instance.id}")
     # sum of all edge weights
     total_weight_sum = sum(edge_weights)
@@ -268,6 +273,7 @@ def kep_evaluation(
     trained_model_name: str,
     eval_overview: bool = True,
     dataset_name: str = "KEP",
+    cycle_path_size_limit: Optional[int] = None,
 ) -> None:
     """Evaluates the predictions made by a model trained for the
     Kidney-Exchange Problem (KEP) on the test, train or val dataset
@@ -286,6 +292,7 @@ def kep_evaluation(
         dataset_name=dataset_name,
         step=step,
         trained_model_name=trained_model_name,
+        cycle_path_size_limit=cycle_path_size_limit,
     )
     eval_df = evaluate_kep_predicted_instances(predictions_dir=predictions_dir)
     end = time.time()
@@ -296,6 +303,7 @@ def kep_evaluation(
         dataset_name=dataset_name,
         step=step,
         trained_model_name=trained_model_name,
+        cycle_path_size_limit=cycle_path_size_limit,
     )
     csv_filepath = output_dir / f"{step}_eval.csv"
     # save dataframe in a CSV

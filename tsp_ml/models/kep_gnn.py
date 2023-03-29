@@ -16,12 +16,15 @@ class KEP_GNN(torch.nn.Module):
 
     def __init__(
         self,
+        cycle_path_size_limit: Optional[int] = None,
         device: torch.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         ),
     ):
         super().__init__()
         self.__device = device
+        self.__cycle_path_size_limit = cycle_path_size_limit
+        print(f"DEBUG init GNN + greedy size limit : {self.__cycle_path_size_limit}")
         self.__training_report = None
         self.__trained_model_name = None
         self.__trained_model_dir = None
@@ -39,6 +42,7 @@ class KEP_GNN(torch.nn.Module):
                 edge_index=data.edge_index,
                 node_types=data.type[0],
                 greedy_algorithm=self.predict_method,
+                cycle_path_size_limit=self.__cycle_path_size_limit,
                 device=self.__device,
             )
         return solution

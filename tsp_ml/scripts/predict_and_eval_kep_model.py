@@ -18,7 +18,7 @@ from predict import predict
 DATASET_NAME = "KEP"
 # TRAINED_MODEL_NAME = "2022_09_19_23h55_GreedyPathsModel"
 # TRAINED_MODEL_NAME = "2022_09_22_02h42_KEP_GAT_PNA_CE"  # c/ greedy paths
-# TRAINED_MODEL_NAME = "2022_10_17_19h17_GreedyCyclesModel"
+TRAINED_MODEL_NAME = "2022_10_17_19h17_GreedyCyclesModel"
 # TRAINED_MODEL_NAME = "2022_10_21_09h31_KEP_GAT_PNA_CE" # c/ greedy cycles
 # TRAINED_MODEL_NAME = "2022_10_21_23h55_KEP_GAT_PNA_CE"  # c/ greedy cycles
 # TRAINED_MODEL_NAME = "2022_10_24_03h18_KEP_GAT_PNA_CE"  # treinado c greedy cycles
@@ -26,18 +26,23 @@ DATASET_NAME = "KEP"
 # TRAINED_MODEL_NAME = "2022_11_25_12h33_KEP_GAT_PNA_CE"
 # validation score: 206:
 # TRAINED_MODEL_NAME = "2022_11_25_18h01_KEP_GAT_PNA_CE"
-#  gambi genial 220 e poucos
-TRAINED_MODEL_NAME = "2022_12_09_01h15_KEP_GAT_PNA_CE"  # e006_s03500 ou e009_09000
-# CHECKPOINT = None
-CHECKPOINT = "e006_s03500"
+#  GNN+GreedyPaths ("gambi genial" 228):
+# TRAINED_MODEL_NAME = "2022_12_09_01h15_KEP_GAT_PNA_CE"  # e006_s03500 ou e009_09000
+# GNN+GreedyCycles tcc
+# TRAINED_MODEL_NAME = "2022_12_10_19h00_KEP_GAT_PNA_CE"
+CHECKPOINT = None
+# CHECKPOINT = "e006_s03500"
 STEP = "test"
-PREDICT_METHOD = "greedy_paths"
+PREDICT_METHOD = "greedy_cycles"
+# PREDICT_METHOD = "greedy_paths"
+CYCLE_PATH_SIZE_LIMIT = 10
 
 if __name__ == "__main__":
     ## first, predicts the solutions on every instance of the test dataset,
 
     # select either CPU or GPU
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
     print(f"Using {device}")
 
     # setup data
@@ -50,6 +55,8 @@ if __name__ == "__main__":
         dataset=dataset,
         predict_method=PREDICT_METHOD,
         checkpoint=CHECKPOINT,
+        cycle_path_size_limit=CYCLE_PATH_SIZE_LIMIT,
+        device=device,
     )
 
     print(f"\n\nPredicting on the {STEP} dataset")
@@ -57,6 +64,7 @@ if __name__ == "__main__":
         dataset_name=DATASET_NAME,
         step=STEP,
         trained_model_name=TRAINED_MODEL_NAME,
+        cycle_path_size_limit=CYCLE_PATH_SIZE_LIMIT,
     )
     predict(
         model=model,
@@ -72,4 +80,5 @@ if __name__ == "__main__":
         step=STEP,
         trained_model_name=TRAINED_MODEL_NAME,
         dataset_name=DATASET_NAME,
+        cycle_path_size_limit=CYCLE_PATH_SIZE_LIMIT,
     )

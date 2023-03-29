@@ -93,6 +93,7 @@ def load_model(
     trained_model_name: str,
     device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
     print_training_report: bool = True,
+    cycle_path_size_limit: Optional[int] = None,
     dataset: Optional[Dataset] = None,
     predict_method: Optional[str] = None,
     checkpoint: Optional[str] = None,
@@ -102,6 +103,7 @@ def load_model(
         model_name=model_name,
         dataset=dataset,
         predict_method=predict_method,
+        cycle_path_size_limit=cycle_path_size_limit,
         device=device,
     ).to(device)
     if checkpoint is None:
@@ -112,7 +114,19 @@ def load_model(
             / f"{trained_model_name}/checkpoints/{checkpoint}/model.pt"
         )
     print(f"...Loading model from file {model_filepath}")
-    model.load_state_dict(torch.load(model_filepath, map_location=device))
+
+    state_dict = torch.load(model_filepath, map_location=device)
+    if "PNA" in model_name:
+        # gambi pra rodar GNN com PNA do pytorch versao 1.11.0+cpu usando pytorch versao 1.13.0 e evitar o erro
+        # missing keys: "pna_conv.aggr_module.avg_deg_lin", "pna_conv.aggr_module.avg_deg_log", "pna_conv_ce.aggr_module.avg_deg_lin", "pna_conv_ce.aggr_module.avg_deg_log".
+        # (na nova versao a parte model_args["pna_deg"] = dataset.in_degree_histogram
+        # fica no state dict (q nem deveria ser))
+        # breakpoint()
+        state_dict["pna_conv.aggr_module.avg_deg_lin"] = torch.Tensor(1)
+        state_dict["pna_conv.aggr_module.avg_deg_log"] = torch.Tensor(1)
+        state_dict["pna_conv_ce.aggr_module.avg_deg_lin"] = torch.Tensor(1)
+        state_dict["pna_conv_ce.aggr_module.avg_deg_log"] = torch.Tensor(1)
+    model.load_state_dict(state_dict)
     if print_training_report and not "Greedy" in model_name:
         training_report_filepath = (
             TRAINED_MODELS_FOLDER_PATH / f"{trained_model_name}/training_report.json"
@@ -127,6 +141,7 @@ def get_model(
     model_name: str,
     dataset: Optional[Dataset] = None,
     predict_method: Optional[str] = None,
+    cycle_path_size_limit: Optional[int] = None,
     device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 ) -> torch.nn.Module:
     """Returns an initialized model object"""
@@ -142,6 +157,8 @@ def get_model(
         model_args["pna_deg"] = dataset.in_degree_histogram
     if predict_method and not "Greedy" in model_name:
         model_args["predict_method"] = predict_method
+    if cycle_path_size_limit:
+        model_args["cycle_path_size_limit"] = cycle_path_size_limit
     if device:
         model_args["device"] = device
     model = Model(**model_args)

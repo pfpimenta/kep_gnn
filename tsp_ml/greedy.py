@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 from torch import Tensor
@@ -83,6 +83,7 @@ def greedy(
     edge_index: Tensor,
     node_types: Tensor,
     greedy_algorithm: str = "greedy_paths",
+    cycle_path_size_limit: Optional[int] = None,
     device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 ) -> Tensor:
     """TODO description
@@ -95,6 +96,7 @@ def greedy(
             edge_scores=edge_scores,
             edge_index=edge_index,
             node_types=node_types,
+            cycle_path_size_limit=cycle_path_size_limit,
             device=device,
         )
     elif greedy_algorithm == "greedy_paths":
@@ -102,6 +104,7 @@ def greedy(
             edge_scores=edge_scores,
             edge_index=edge_index,
             node_types=node_types,
+            path_size_limit=cycle_path_size_limit,
             device=device,
         )
     elif greedy_algorithm == "greedy_cycles":
@@ -109,6 +112,7 @@ def greedy(
             edge_scores=edge_scores,
             edge_index=edge_index,
             node_types=node_types,
+            cycle_size_limit=cycle_path_size_limit,
             device=device,
         )
     elif greedy_algorithm == "greedy_1_path":
@@ -116,6 +120,7 @@ def greedy(
             edge_scores=edge_scores,
             edge_index=edge_index,
             node_types=node_types,
+            path_size_limit=cycle_path_size_limit,
             device=device,
         )
     elif greedy_algorithm == "greedy_1_cycle":
@@ -123,6 +128,7 @@ def greedy(
             edge_scores=edge_scores,
             edge_index=edge_index,
             node_types=node_types,
+            cycle_size_limit=cycle_path_size_limit,
             device=device,
         )
     else:
@@ -138,6 +144,7 @@ def greedy_cycles_and_paths(
     edge_index: Tensor,
     node_types: Tensor,
     device: torch.device,
+    cycle_path_size_limit: Optional[int] = None,
 ) -> Tensor:
     raise NotImplemented()  # TODO
 
@@ -147,6 +154,7 @@ def greedy_cycles(
     edge_index: Tensor,
     node_types: Tensor,
     device: torch.device,
+    cycle_size_limit: Optional[int] = None,
 ) -> Tensor:
     # TODO description: returns a solution formed only by kidney exchange cycles
     # edge_scores = edge_scores[:, 0] / (edge_scores[:, 1] + EPSILON)
@@ -179,6 +187,7 @@ def greedy_cycles(
             edge_index=edge_index,
             edge_scores=edge_scores,
             current_solution=solution,
+            cycle_size_limit=cycle_size_limit,
         )
         if dead_end:
             # print("DEBUG dead_end was found.")
@@ -193,6 +202,7 @@ def greedy_paths(
     edge_index: Tensor,
     node_types: Tensor,
     device: torch.device,
+    path_size_limit: Optional[int] = None,
 ) -> Tensor:
     """
     repeats until there are no more valid edges
@@ -219,6 +229,7 @@ def greedy_paths(
             edge_scores=edge_scores,
             ndd_out_edge_scores=ndd_out_edge_scores,
             current_solution=solution,
+            path_size_limit=path_size_limit,
         )
         ndd_out_edge_scores = edge_scores * is_edge_ndd_mask
     return solution
@@ -229,6 +240,7 @@ def greedy_1_path(
     edge_index: Tensor,
     node_types: Tensor,
     device: torch.device,
+    path_size_limit: Optional[int] = None,
 ) -> Tensor:
     # TODO testar !!! validar
     edge_scores = edge_scores[:, 0] / (edge_scores[:, 1] + EPSILON)
@@ -254,6 +266,7 @@ def greedy_1_cycle(
     edge_index: Tensor,
     node_types: Tensor,
     device: torch.device,
+    cycle_size_limit: Optional[int] = None,
 ) -> Tensor:
     raise NotImplemented()  # TODO
 
@@ -274,6 +287,7 @@ def greedy_choose_cycle(
     edge_index: Tensor,
     edge_scores: Tensor,
     current_solution: Tensor,
+    cycle_size_limit: Optional[int] = None,
 ) -> Tuple[Tensor, Tensor]:
     # TODO description
     src, dst = edge_index
@@ -301,6 +315,13 @@ def greedy_choose_cycle(
     dead_end = False
     while not current_node_id in cycle_node_ids:
         cycle_node_ids.append(current_node_id.item())
+
+        # if cycle size limit is passed,
+        # then return unchanged solution
+        if isinstance(cycle_size_limit, int):
+            if len(cycle_node_ids) > cycle_size_limit:
+                dead_end = True
+                return unchanged_solution, unchanged_edge_scores, dead_end
 
         current_node_edge_mask = (src == current_node_id).to(int)
         next_edge_scores = edge_scores * current_node_edge_mask
@@ -346,12 +367,14 @@ def greedy_choose_path(
     edge_scores: Tensor,
     ndd_out_edge_scores: Tensor,
     current_solution: Tensor,
+    path_size_limit: Optional[int] = None,
 ) -> Tensor:
 
     src, _ = edge_index
     # choose max score out of NDD-out-edges
     chosen_edge_index = torch.argmax(ndd_out_edge_scores)
     current_solution[chosen_edge_index] = 1
+    current_path_size = 1
 
     # mask edges that have become unavailable
     # (already src/dst of a chosen edge)
@@ -368,11 +391,19 @@ def greedy_choose_path(
         node_edge_scores = edge_scores * node_mask
         end_of_path = (node_edge_scores == torch.zeros_like(node_edge_scores)).all()
         if end_of_path:
-            break  # TODO refactor
+            # print(f"DEBUG end_of_path reached: {torch.sum(current_solution)}")
+            break  # TODO refactor?
+
+        # if path size limit is reached,
+        # then return current solution
+        if isinstance(path_size_limit, int):
+            if current_path_size >= path_size_limit:
+                break  # TODO refactor?
 
         # choose next edge
         chosen_edge_index = torch.argmax(node_edge_scores)
         current_solution[chosen_edge_index] = 1
+        current_path_size += 1
 
         # mask edges that have become unavailable
         # (already src/dst of a chosen edge)
@@ -380,4 +411,5 @@ def greedy_choose_path(
             chosen_edge_index=chosen_edge_index, edge_index=edge_index
         )
         edge_scores[unavailable_edge_mask == 1] = 0
+
     return current_solution, edge_scores
