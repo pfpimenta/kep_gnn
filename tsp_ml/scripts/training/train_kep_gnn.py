@@ -16,15 +16,18 @@ OPTIMIZER_WEIGHT_DECAY = 0.00001  # L2 regularization
 MODEL_NAME = "KEP_GAT_PNA_CE"
 # MODEL_NAME = "KEP_1L_GNN"
 DATASET_NAME = "KEP"
-PREDICT_METHOD = "greedy_paths"
-# PREDICT_METHOD = "greedy_cycles"
+# PREDICT_METHOD = "greedy_paths"
+# PREDICT_METHOD = "greedy_paths"
+PREDICT_METHOD = "greedy_cycles"
 VALIDATION_PERIOD = 1000
 USE_VALIDATION = True
+CYCLE_PATH_SIZE_LIMIT = 10
 
 
 if __name__ == "__main__":
     # select either CPU or GPU
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
     print(f"Using {device}")
 
     train(
@@ -38,4 +41,5 @@ if __name__ == "__main__":
         use_validation=USE_VALIDATION,
         validation_period=VALIDATION_PERIOD,
         predict_method=PREDICT_METHOD,
+        cycle_path_size_limit=CYCLE_PATH_SIZE_LIMIT,
     )

@@ -95,6 +95,7 @@ def get_training_report(
     train_dataloader: DataLoader,
     optimizer: torch.optim.Optimizer,
     loss_function: torch.nn.modules.loss._Loss,
+    cycle_path_size_limit: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Returns a dictionary containing information about the current training run"""
     loss_dict = dict(loss_function.state_dict())
@@ -106,6 +107,7 @@ def get_training_report(
         "model_architecture_name": model_architecture_name,
         "model_architecture": str(model),
         "prediction_method": model.predict_method,
+        "cycle_path_size_limit": cycle_path_size_limit,
         "batch_size": train_dataloader.batch_size,
         "device": str(device),
         "optimizer": optimizer.__class__.__name__,
@@ -126,6 +128,7 @@ def train_model(
     loss_function: torch.nn.modules.loss._Loss,
     validation_dataloader: Optional[DataLoader] = None,
     validation_period: int = 1000,
+    cycle_path_size_limit: Optional[int] = None,
 ) -> torch.nn.Module:
     # TODO description
     model.training_report = get_training_report(
@@ -135,6 +138,7 @@ def train_model(
         train_dataloader=train_dataloader,
         optimizer=optimizer,
         loss_function=loss_function,
+        cycle_path_size_limit=cycle_path_size_limit,
     )
     start = time.time()
     print(
@@ -172,6 +176,7 @@ def train(
     optimizer_weight_decay: float = 0.0,
     use_validation: bool = True,
     validation_period: int = 1000,
+    cycle_path_size_limit: Optional[int] = None,
 ):
     """
     TODO description:
@@ -192,6 +197,7 @@ def train(
         learning_rate: learning rate to be used in training by the optimizer.
         use_validation: if True, runs a validation after each epoch
         validation_period: how many batch predictions will be executed between each validation
+        cycle_path_size_limit: maximum size allowed for paths and cycles in the solution
     """
     set_torch_seed()
 
@@ -208,6 +214,7 @@ def train(
         dataset=train_dataloader.dataset,
         predict_method=predict_method,
         device=device,
+        cycle_path_size_limit=cycle_path_size_limit,
     ).to(device=device)
     optimizer = torch.optim.Adam(
         model.parameters(),
@@ -227,6 +234,7 @@ def train(
         optimizer=optimizer,
         loss_function=loss_function,
         validation_period=validation_period,
+        cycle_path_size_limit=cycle_path_size_limit,
     )
     # save model
     save_model(model=model)
