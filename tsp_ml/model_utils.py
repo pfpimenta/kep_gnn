@@ -27,7 +27,6 @@ def save_dict_to_json(dict: Dict[str, Any], json_filepath: str):
         file.write(json_string)
 
 
-# def save_model(model: torch.nn.Module, training_report: Dict[str, Any]):
 def save_model(model: torch.nn.Module) -> None:
     """Creates a folder and saves in it the model state and a JSON file with
     information about the training process"""
@@ -119,8 +118,6 @@ def load_model(
     if "PNA" in model_name:
         # gambi pra rodar GNN com PNA do pytorch versao 1.11.0+cpu usando pytorch versao 1.13.0 e evitar o erro
         # missing keys: "pna_conv.aggr_module.avg_deg_lin", "pna_conv.aggr_module.avg_deg_log", "pna_conv_ce.aggr_module.avg_deg_lin", "pna_conv_ce.aggr_module.avg_deg_log".
-        # (na nova versao a parte model_args["pna_deg"] = dataset.in_degree_histogram
-        # fica no state dict (q nem deveria ser))
         # breakpoint()
         state_dict["pna_conv.aggr_module.avg_deg_lin"] = torch.Tensor(1)
         state_dict["pna_conv.aggr_module.avg_deg_log"] = torch.Tensor(1)

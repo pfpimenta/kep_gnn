@@ -117,13 +117,17 @@ def evaluate_kep_instance_prediction(
 
     # check conditional donation restriction for PDP nodes
     pdp_node_mask = predicted_instance.x[:, 3]
+    ndd_node_mask = predicted_instance.x[:, 2]  # DEBUG
+    p_node_mask = predicted_instance.x[:, 4]  # DEBUG
+    # (Pdb) (((node_degrees["dst"] < node_degrees["src"]).to(torch.int16) * pdp_node_mask)).nonzero()
+    # tensor([[ 57], [106], [113], [138], [145], [148], [173], [179], [192], [195], [204], [263], [281]])
     # degree in must be >= than degree out. check if any is <
     num_invalid_pdp_nodes = torch.sum(
         (node_degrees["dst"] < node_degrees["src"]).to(torch.int16) * pdp_node_mask
     )
     if num_invalid_pdp_nodes > 0:
         is_solution_valid = False
-        # breakpoint()
+        breakpoint()
         print(f"Found an invalid solution!   id: {predicted_instance.id}")
     # sum of all edge weights
     total_weight_sum = sum(edge_weights)
@@ -243,11 +247,14 @@ def evaluation_overview(
     eval_time: float,
     save_overview: bool = True,
     print_overview: bool = True,
+    cycle_path_size_limit: Optional[int] = None,
 ) -> None:
     """Generates a small report of the evaluation of the model's performance
     on the dataset, and then saves it in a markdown (.md) file
     and/or prints it on the terminal.
     """
+    if cycle_path_size_limit is None:
+        cycle_path_size_limit = "no"
     if not print_overview and not save_overview:
         print(
             "WARNING: There is no use of computing the evaluation_overview"
@@ -262,7 +269,10 @@ def evaluation_overview(
     if print_overview:
         print("\n" + eval_overview)
     if save_overview:
-        filepath = RESULTS_FOLDER_PATH / f"{trained_model_name}_{step}.md"
+        filepath = (
+            RESULTS_FOLDER_PATH
+            / f"{trained_model_name}_{step}_{cycle_path_size_limit}_size.md"
+        )
         with open(filepath, "w") as f:
             f.write(eval_overview)
         print(f"Saved {filepath}")
@@ -315,6 +325,7 @@ def kep_evaluation(
         evaluation_overview(
             step=step,
             trained_model_name=trained_model_name,
+            cycle_path_size_limit=cycle_path_size_limit,
             eval_df=eval_df,
             eval_time=elapsed_time,
         )
