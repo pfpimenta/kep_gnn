@@ -127,8 +127,8 @@ def evaluate_kep_instance_prediction(
     )
     if num_invalid_pdp_nodes > 0:
         is_solution_valid = False
-        breakpoint()
         print(f"Found an invalid solution!   id: {predicted_instance.id}")
+        breakpoint()
     # sum of all edge weights
     total_weight_sum = sum(edge_weights)
     # sum of all edge weights in solution
@@ -167,6 +167,7 @@ def evaluate_kep_predicted_instances(predictions_dir: str) -> pd.DataFrame:
     predicted_instances_dir = predictions_dir / "predicted_instances"
     eval_df = pd.DataFrame()
     # load and evaluate one predicted instance at a time
+    print(f"Loading instances from {predicted_instances_dir}")
     for filename in tqdm(
         os.listdir(predicted_instances_dir), desc="Evaluation", file=sys.stdout
     ):

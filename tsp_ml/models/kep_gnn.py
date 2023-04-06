@@ -37,10 +37,15 @@ class KEP_GNN(torch.nn.Module):
         if self.predict_method is None:
             solution = torch.argmax(data.scores, dim=1)
         else:
+            if torch.isnan(data.scores).any():
+                print(f"NaN found in scores: {data.scores}")
+                print(f"NaN found in scores for {data.id[0]}")
+                breakpoint()
             solution = greedy(
-                edge_scores=data.scores,
-                edge_index=data.edge_index,
-                node_types=data.type[0],
+                kep_instance=data,
+                # edge_scores=data.scores,
+                # edge_index=data.edge_index,
+                # node_types=data.type[0],
                 greedy_algorithm=self.predict_method,
                 cycle_path_size_limit=self.__cycle_path_size_limit,
                 device=self.__device,

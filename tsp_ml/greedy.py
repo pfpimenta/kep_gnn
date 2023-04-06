@@ -3,6 +3,7 @@ from typing import Optional, Tuple
 
 import torch
 from torch import Tensor
+from torch_geometric.data import Data
 
 EPSILON = 1e-10
 
@@ -79,9 +80,10 @@ def get_unavailable_edge_mask(chosen_edge_index: int, edge_index: Tensor) -> Ten
 
 
 def greedy(
-    edge_scores: Tensor,
-    edge_index: Tensor,
-    node_types: Tensor,
+    kep_instance: Data,
+    # edge_scores: Tensor,
+    # edge_index: Tensor,
+    # node_types: Tensor,
     greedy_algorithm: str = "greedy_paths",
     cycle_path_size_limit: Optional[int] = None,
     device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
@@ -93,41 +95,46 @@ def greedy(
     """
     if greedy_algorithm == "greedy_cycles_and_paths":
         solution = greedy_cycles_and_paths(
-            edge_scores=edge_scores,
-            edge_index=edge_index,
-            node_types=node_types,
+            kep_instance=kep_instance,
+            # edge_scores=edge_scores,
+            # edge_index=edge_index,
+            # node_types=node_types,
             cycle_path_size_limit=cycle_path_size_limit,
             device=device,
         )
     elif greedy_algorithm == "greedy_paths":
         solution = greedy_paths(
-            edge_scores=edge_scores,
-            edge_index=edge_index,
-            node_types=node_types,
+            kep_instance=kep_instance,
+            # edge_scores=edge_scores,
+            # edge_index=edge_index,
+            # node_types=node_types,
             path_size_limit=cycle_path_size_limit,
             device=device,
         )
     elif greedy_algorithm == "greedy_cycles":
         solution = greedy_cycles(
-            edge_scores=edge_scores,
-            edge_index=edge_index,
-            node_types=node_types,
+            kep_instance=kep_instance,
+            # edge_scores=edge_scores,
+            # edge_index=edge_index,
+            # node_types=node_types,
             cycle_size_limit=cycle_path_size_limit,
             device=device,
         )
     elif greedy_algorithm == "greedy_1_path":
         solution = greedy_1_path(
-            edge_scores=edge_scores,
-            edge_index=edge_index,
-            node_types=node_types,
+            kep_instance=kep_instance,
+            # edge_scores=edge_scores,
+            # edge_index=edge_index,
+            # node_types=node_types,
             path_size_limit=cycle_path_size_limit,
             device=device,
         )
     elif greedy_algorithm == "greedy_1_cycle":
         solution = greedy_1_cycle(
-            edge_scores=edge_scores,
-            edge_index=edge_index,
-            node_types=node_types,
+            kep_instance=kep_instance,
+            # edge_scores=edge_scores,
+            # edge_index=edge_index,
+            # node_types=node_types,
             cycle_size_limit=cycle_path_size_limit,
             device=device,
         )
@@ -150,27 +157,41 @@ def greedy_cycles_and_paths(
 
 
 def greedy_cycles(
-    edge_scores: Tensor,
-    edge_index: Tensor,
-    node_types: Tensor,
+    kep_instance: Data,
+    # edge_scores: Tensor,
+    # edge_index: Tensor,
+    # node_types: Tensor,
     device: torch.device,
     cycle_size_limit: Optional[int] = None,
 ) -> Tensor:
     # TODO description: returns a solution formed only by kidney exchange cycles
     # edge_scores = edge_scores[:, 0] / (edge_scores[:, 1] + EPSILON)
-    edge_scores = edge_scores[:, 0]
+    # edge_scores = edge_scores[:, 0]
+    # check if there are scores to use
+    if "scores" in kep_instance.keys:
+        # print('DEBUG greedy_cycles using edge scores !')
+        edge_scores = kep_instance.scores
+        assert kep_instance.scores.shape[0] == kep_instance.edge_weights.shape[0]
+        edge_scores = edge_scores[:, 0] / (edge_scores[:, 1] + EPSILON)
+        # breakpoint()
+    else:
+        # print('DEBUG greedy_cycles using edge weights!!!!')
+        edge_scores = kep_instance.edge_weights
+
+    node_types = kep_instance.type[0]
+
     solution = torch.zeros_like(edge_scores)
 
     # select only PDP->PDP edges
     is_pdp_src_edge_mask = get_node_type_edge_mask(
-        edge_index=edge_index,
+        edge_index=kep_instance.edge_index,
         node_types=node_types,
         node_type="PDP",
         direction="src",
         device=device,
     )
     is_pdp_dst_edge_mask = get_node_type_edge_mask(
-        edge_index=edge_index,
+        edge_index=kep_instance.edge_index,
         node_types=node_types,
         node_type="PDP",
         direction="dst",
@@ -184,7 +205,7 @@ def greedy_cycles(
     num_cycles_found = 0
     while (edge_scores == torch.zeros_like(edge_scores)).all() == False:
         solution, edge_scores, dead_end = greedy_choose_cycle(
-            edge_index=edge_index,
+            edge_index=kep_instance.edge_index,
             edge_scores=edge_scores,
             current_solution=solution,
             cycle_size_limit=cycle_size_limit,
@@ -194,13 +215,27 @@ def greedy_cycles(
             break
         else:
             num_cycles_found += 1
+
+    # # DEBUG:
+    kep_instance.pred = solution
+    from kep_evaluation import evaluate_kep_instance_prediction
+
+    eval_dict = evaluate_kep_instance_prediction(kep_instance)
+    if eval_dict["is_solution_valid"] == 0:
+        # TODO DEBUG
+        breakpoint()
     return solution
 
 
+# TODO mudar params pra
+# kep_instance: Data,
+# device: torch.device,
+# path_size_limit: Optional[int] = None,
 def greedy_paths(
-    edge_scores: Tensor,
-    edge_index: Tensor,
-    node_types: Tensor,
+    kep_instance: Data,
+    # edge_scores: Tensor,
+    # edge_index: Tensor,
+    # node_types: Tensor,
     device: torch.device,
     path_size_limit: Optional[int] = None,
 ) -> Tensor:
@@ -211,13 +246,21 @@ def greedy_paths(
     then follows the best scoring edge from node to node
     until no more edges are available.
     """
-    edge_scores = edge_scores[:, 0] / (edge_scores[:, 1] + EPSILON)
+    # check if there are scores to use
+    if "scores" in kep_instance.keys:
+        edge_scores = kep_instance.scores
+        assert kep_instance.scores.shape[0] == kep_instance.edge_weights.shape[0]
+        edge_scores = edge_scores[:, 0] / (edge_scores[:, 1] + EPSILON)
+    else:
+        edge_scores = kep_instance.edge_weights
+
+    node_types = kep_instance.type[0]
     solution = torch.zeros_like(edge_scores)
     # solution.requires_grad = True  # DEBUG
 
     # select edges of NDD nodes
     is_edge_ndd_mask = get_ndd_edge_mask(
-        edge_index=edge_index, node_types=node_types, device=device
+        edge_index=kep_instance.edge_index, node_types=node_types, device=device
     )
 
     # add paths to the solution until there are no more valid edges
@@ -225,7 +268,7 @@ def greedy_paths(
     ndd_out_edge_scores = edge_scores * is_edge_ndd_mask
     while not (ndd_out_edge_scores == torch.zeros_like(ndd_out_edge_scores)).all():
         solution, edge_scores = greedy_choose_path(
-            edge_index=edge_index,
+            edge_index=kep_instance.edge_index,
             edge_scores=edge_scores,
             ndd_out_edge_scores=ndd_out_edge_scores,
             current_solution=solution,
