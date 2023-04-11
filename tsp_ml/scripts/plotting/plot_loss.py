@@ -14,12 +14,15 @@ from paths import PLOTS_FOLDER_PATH, TRAINED_MODELS_FOLDER_PATH
 
 # TRAINED_MODEL_NAME = "2022_12_10_19h00_KEP_GAT_PNA_CE"
 # TRAINED_MODEL_NAME = "2022_10_21_23h55_KEP_GAT_PNA_CE" # GNN+GreedyCycles do tcc
-TRAINED_MODEL_NAME = "2022_12_10_19h00_KEP_GAT_PNA_CE"  # outra GNN+GreedyCycles
+# TRAINED_MODEL_NAME = "2022_12_10_19h00_KEP_GAT_PNA_CE"  # outra GNN+GreedyCycles
 # TRAINED_MODEL_NAME = "2022_12_09_01h15_KEP_GAT_PNA_CE"  # GNN+paths 230
 # TRAINED_MODEL_NAME = "2022_12_05_23h44_KEP_1L_GNN"
+# TRAINED_MODEL_NAME = "2023_04_06_19h51_KEP_GAT_PNA_CE" # GNN+paths k=15
+TRAINED_MODEL_NAME = "2023_04_06_19h48_KEP_GAT_PNA_CE"  # GNN+cycles k=15
 PLOT_FULL_TRAINING_LOSS = False
 SAVE_PLOTS = True
 SHOW_PLOTS = False
+VALIDATION_PERIOD = 1000
 
 # TODO load all training loss values
 if PLOT_FULL_TRAINING_LOSS:
@@ -34,6 +37,7 @@ def plot_line_graph(
     show_plots: bool = SHOW_PLOTS,
     save_plot: bool = SAVE_PLOTS,
     num_epochs: Optional[int] = None,
+    validation_period: Optional[int] = None,
 ):
     x_values = range(len(checkpoints))
     x_labels = sorted(
@@ -41,11 +45,21 @@ def plot_line_graph(
     )
     # x_labels = []
     # x_labels = checkpoint_labels
-    if num_epochs:
-        x_labels = [epoch + 1 for epoch in range(num_epochs)]
+    if num_epochs and validation_period:
+        dataset_size = 10000
+        validations_per_epoch = dataset_size / validation_period
+        x_labels = [epoch for epoch in range(num_epochs + 1)]
         x_labels_locations = [
-            position * num_epochs for position in range(len(x_labels))
+            position * (validations_per_epoch - 1) for position in range(len(x_labels))
         ]
+        # breakpoint()
+    # elif num_epochs:
+    #     # (Pdb) len(val_values)   180
+    #     breakpoint()
+    #     x_labels = [epoch + 1 for epoch in range(num_epochs)]
+    #     x_labels_locations = [
+    #         position * num_epochs/2 for position in range(len(x_labels))
+    #     ]
     else:
         x_labels = sorted(
             [checkpoint for checkpoint in checkpoints if checkpoint[-5:] == "00500"]
@@ -119,19 +133,20 @@ for checkpoint in checkpoint_list:
 # fix to avoid plotting 1-batch validations:
 checkpoint_list = list(set(checkpoint_list) - set(invalid_checkpoints))
 
-
 plot_line_graph(
     checkpoints=checkpoint_list,
     val_values=val_loss_list,
     train_values=train_loss_list,
     plot_content="Loss",
     num_epochs=num_epochs,
+    validation_period=VALIDATION_PERIOD,
 )
 plot_line_graph(
     checkpoints=checkpoint_list,
     val_values=val_score_list,
     plot_content="Score in validation set",
     num_epochs=num_epochs,
+    validation_period=VALIDATION_PERIOD,
 )
 plot_line_graph(
     checkpoints=checkpoint_list,
@@ -139,10 +154,12 @@ plot_line_graph(
     val_values=val_loss_std_list,
     plot_content="Loss standard deviation",
     num_epochs=num_epochs,
+    validation_period=VALIDATION_PERIOD,
 )
 plot_line_graph(
     checkpoints=checkpoint_list,
     val_values=val_score_std_list,
     plot_content="Validation score standard deviation",
     num_epochs=num_epochs,
+    validation_period=VALIDATION_PERIOD,
 )
