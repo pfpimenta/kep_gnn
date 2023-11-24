@@ -6,7 +6,7 @@ The results are fully reproducible with only the code in this repository, as all
 
 A short paper was published at the 2023 IEEE ICTAI conference, and a full paper has also been submitted to a journal.
 
-*WARNING*: the rest of this README file below is outdated and will be updated soon with clear instructions on how to install, setup, use, reproduce results and extend the work.
+*WARNING*: the rest of this README file below will be updated soon with clear instructions on how to install, setup, use, reproduce results and extend the work.
 
 ## Project description
 
