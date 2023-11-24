@@ -2,9 +2,11 @@
 
 Repository for the code for solving the Kidney Exchange Problem (KEP) with Graph Neural Network (GNN) methods.
 The results of the experiments were summarized into a scientific article available at https://arxiv.org/abs/2304.09975.
+The results are fully reproducible with only the code in this repository, as all the data used is artificially generated and the model training and evaluation is done by code contained in this repository.
 
-*WARNING*: this README file is outdated and will be updated soon.
+A short paper was published at the 2023 IEEE ICTAI conference, and a full paper has also been submitted to a journal.
 
+*WARNING*: the rest of this README file below is outdated and will be updated soon with clear instructions on how to install, setup, use, reproduce results and extend the work.
 
 ## Project description
 
