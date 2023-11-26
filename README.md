@@ -32,38 +32,38 @@ pip install -r requirements.txt
 
 To test the installation, you can run the 'import_test.py' script:
 ```bashrc
-python3 kep_gnn/import_test.py
+python3 tsp_ml/import_test.py
 ```
 If there are no errors and the script prints a message saying that all imports worked, the installation is complete!
 
 ## How to run
-TODO little text describing what you can do with the project
+To be able to train the model, you must first have training, validation, and test data, which can be generated through the following scripts:
 
 #### * Generating the TSP dataset
 ```bashrc
-python3 kep_gnn/datasets/generate_tsp_dataset.py
+python3 tsp_ml/scripts/dataset_generation/generate_tsp_dataset.py
 ```
 
 #### * Generating the DTSP dataset
 ```bashrc
-python3 kep_gnn/datasets/generate_dtsp_dataset.py
+python3 tsp_ml/scripts/dataset_generation/generate_dtsp_dataset.py
 ```
 
 #### * Generating the KEP dataset
 ```bashrc
-python3 kep_gnn/datasets/generate_kep_dataset.py
+python3 tsp_ml/scripts/dataset_generation/generate_kep_dataset.py
 ```
 
 #### * Training a model
 First, choose the model architecture, the dataset to be used and the hyperparameter values by changing the variables in the beginning of the train.py script. Then, run the Python script:
 ```bashrc
-python3 kep_gnn/train.py
+python3 tsp_ml/train.py
 ```
 
 #### * Evaluating a model
 First, choose the trained model by changing the 'TRAINED_MODEL_NAME'. The trained model should be at the trained models folder. Then, run the evaluate Python script:
 ```bashrc
-python3 kep_gnn/evaluate.py
+python3 tsp_ml/evaluate.py
 ```
 
 #### * Using a model to predict the TSP route of a single graph
