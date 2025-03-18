@@ -65,9 +65,3 @@ First, choose the trained model by changing the 'TRAINED_MODEL_NAME'. The traine
 ```bashrc
 python3 tsp_ml/evaluate.py
 ```
-
-#### * Using a model to predict the TSP route of a single graph
-TODO
-
-#### * Visualizing predictions
-TODO
